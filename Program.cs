@@ -9,12 +9,11 @@ builder.Services.AddDbContextFactory<DataContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
 });
 
-builder.Services.AddLogging(x => x.AddConsole());
+builder.Services.AddLogging(x => x.AddSimpleConsole(c => c.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] "));
 
 builder.Services.AddTransient<IDataRepository, DataRepository>();
 builder.Services.AddTransient<ILabelService, LabelService>();
-
-builder.Services.AddSingleton<ILabeler, Labeler>();
+builder.Services.AddTransient<ILabeler, Labeler>();
 
 var host = builder.Build();
 host.Run();

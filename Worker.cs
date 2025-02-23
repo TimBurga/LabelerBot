@@ -61,6 +61,8 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
 
         if (post.Embed is EmbedImages imgPost)
         {
+            logger.LogInformation($"Processing new post with images from {record.Did}");
+
             foreach (var image in imgPost.Images)
             {
                 var newPost = new ImagePost
@@ -72,7 +74,7 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
                 };
 
                 await dataRepository.SavePost(newPost);
-                logger.LogDebug($"{newPost.Did} posted {newPost.Cid}: {newPost.ValidAlt}");
+                logger.LogInformation("Saving new post: {newPost}", newPost);
             }
         }
     }
@@ -93,6 +95,8 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
 
     private async Task Backfill(ATDid did)
     {
+        logger.LogInformation($"Backfilling posts for {did}");
+
         var atProtocolBuilder = new ATProtocolBuilder();
         var atProtocol = atProtocolBuilder.Build();
 
@@ -125,7 +129,7 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
                         };
 
                         await dataRepository.SavePost(newPost);
-                        logger.LogDebug($"{newPost.Did} posted {newPost.Cid}: {newPost.ValidAlt}");
+                        logger.LogInformation("Saved new post: {newPost}", newPost);
 
                         if (post.CreatedAt.GetValueOrDefault(DateTime.UtcNow) < earliestTimeSeen)
                         {

@@ -63,14 +63,11 @@ public class Labeler : ILabeler
 
     private async Task EnsureAuth()
     {
-        if (!_atproto.SessionManager.IsAuthenticated)
+        var authResult = await _atproto.AuthenticateWithPasswordResultAsync(_labelerDid.Handler, _labelerPassword);
+        if (authResult.IsT1)
         {
-            var authResult = await _atproto.AuthenticateWithPasswordResultAsync(_labelerDid.Handler, _labelerPassword);
-            if (authResult.IsT1)
-            {
-                var error = authResult.AsT1;
-                _logger.LogError(error.Detail?.Message, error.Detail?.StackTrace);
-            }
+            var error = authResult.AsT1;
+            _logger.LogError(error.Detail?.Message, error.Detail?.StackTrace);
         }
     }
 }

@@ -12,7 +12,7 @@ public interface IDataRepository
     Task<LabelLevel?> GetCurrentLabel(ATDid did);
     Task AddLabel(ATDid did, LabelLevel label);
     Task ClearLabels(ATDid did);
-
+    Task<List<Subscriber>> GetSubscribers();
 }
 
 public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILogger<DataRepository> logger) : IDataRepository
@@ -22,23 +22,26 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         try
         {
             var context = await dbContextFactory.CreateDbContextAsync();
+
+            var existing = await context.Posts.SingleOrDefaultAsync(x => x.Did.Equals(imagePost.Did) && x.Cid.Equals(imagePost.Cid));
+            if (existing != null)
+            {
+                return;
+            }
+
             context.Posts.Add(imagePost);
             await context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
-            if (ex.GetBaseException().HResult == -2146232060)
-            {
-                // ignore PK violations, we have the record already
-                return;
-            }
-
             logger.LogError(ex.Message, ex);
         }
     }
 
     public async Task AddSubscriber(ATDid subscriber)
     {
+        logger.LogInformation("Adding subscriber {Subscriber}", subscriber);
+
         await ClearExisting(subscriber);
 
         var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -89,6 +92,12 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         var existing = await dbContext.Labels.Where(x => x.Did.Equals(did)).ToListAsync();
         dbContext.Labels.RemoveRange(existing);
         await dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<Subscriber>> GetSubscribers()
+    {
+        var dbContext = await dbContextFactory.CreateDbContextAsync();
+        return await dbContext.Subscribers.ToListAsync();
     }
 
     private async Task ClearExisting(ATDid did)
