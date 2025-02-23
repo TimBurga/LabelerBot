@@ -22,7 +22,7 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
 
         var totalPosts = posts.Count;
         var postsWithValidAlt = posts.Count(y => y.ValidAlt);
-        var percentage = postsWithValidAlt / totalPosts;
+        var percentage = (decimal)postsWithValidAlt / (decimal)totalPosts;
         var newLevel = GetLabelLevel(percentage * 100);
 
         logger.LogInformation("{did}: {postsWithValidAlt} / {totalPosts} = {percentage} [{newLevel}]", 
@@ -68,7 +68,7 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
         }
     }
 
-    private static LabelLevel GetLabelLevel(int percentage)
+    private static LabelLevel GetLabelLevel(decimal percentage)
     {
         return percentage switch
         {
