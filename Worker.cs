@@ -101,10 +101,16 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
         var atProtocol = atProtocolBuilder.Build();
 
         string? cursor = null;
+        string? lastCursor = null;
         var earliestTimeSeen = DateTime.UtcNow;
 
         while (earliestTimeSeen > DateTime.UtcNow.AddMonths(-1))
         {
+            if (cursor == null && lastCursor != null)
+            {
+                break;
+            }
+
             var records = await atProtocol.Repo.ListRecordsAsync(did, "app.bsky.feed.post", 50, cursor);
 
             await records.SwitchAsync(async success =>
@@ -138,6 +144,7 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
                     }
                 }
 
+                lastCursor = cursor;
                 cursor = success.Cursor;
             }, error =>
             {
