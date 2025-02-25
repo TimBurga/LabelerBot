@@ -1,4 +1,5 @@
-﻿using FishyFlip.Models;
+﻿using FishyFlip.Lexicon.App.Bsky.Feed;
+using FishyFlip.Models;
 using LabelerBot.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,8 @@ public interface IDataRepository
     Task<LabelLevel?> GetCurrentLabel(ATDid did);
     Task AddLabel(ATDid did, LabelLevel label);
     Task ClearLabels(ATDid did);
-    Task<List<Subscriber>> GetSubscribers();
+    Task<List<Subscriber>> GetActiveSubscribers();
+    Task DeactivateSubscriber(ATDid did);
 }
 
 public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILogger<DataRepository> logger) : IDataRepository
@@ -31,6 +33,7 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
 
             context.Posts.Add(imagePost);
             await context.SaveChangesAsync();
+            logger.LogInformation($"Saved new post: [Did {imagePost.Did}] [{imagePost.Timestamp}] [Valid: {imagePost.ValidAlt}]");
         }
         catch (Exception ex)
         {
@@ -40,7 +43,7 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
 
     public async Task AddSubscriber(ATDid subscriber)
     {
-        logger.LogInformation("Adding subscriber {Subscriber}", subscriber);
+        logger.LogInformation("Adding subscriber {did}", subscriber.Handler);
 
         await ClearExisting(subscriber);
 
@@ -94,10 +97,18 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         await dbContext.SaveChangesAsync();
     }
 
-    public async Task<List<Subscriber>> GetSubscribers()
+    public async Task<List<Subscriber>> GetActiveSubscribers()
     {
         var dbContext = await dbContextFactory.CreateDbContextAsync();
-        return await dbContext.Subscribers.ToListAsync();
+        return await dbContext.Subscribers.Where(x => x.Active).ToListAsync();
+    }
+
+    public async Task DeactivateSubscriber(ATDid did)
+    {
+        var dbContext = await dbContextFactory.CreateDbContextAsync();
+        var sub = await dbContext.Subscribers.SingleAsync(x => x.Did.Equals(did));
+        sub.Active = false;
+        await dbContext.SaveChangesAsync();
     }
 
     private async Task ClearExisting(ATDid did)

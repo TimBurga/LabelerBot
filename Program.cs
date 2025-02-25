@@ -15,5 +15,7 @@ builder.Services.AddTransient<IDataRepository, DataRepository>();
 builder.Services.AddTransient<ILabelService, LabelService>();
 builder.Services.AddTransient<ILabeler, Labeler>();
 
+builder.Services.AddSingleton<ILabelerSessionManager, LabelerSessionManager>();
+
 var host = builder.Build();
 host.Run();

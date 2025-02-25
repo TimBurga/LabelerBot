@@ -61,7 +61,7 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
     {
         logger.LogInformation("Reprocessing all subscribers");
 
-        var subs = await dataRepository.GetSubscribers();
+        var subs = await dataRepository.GetActiveSubscribers();
         foreach (var sub in subs)
         {
             await AdjustLabel(sub.Did);

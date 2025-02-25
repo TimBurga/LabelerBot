@@ -10,13 +10,20 @@ namespace LabelerBot;
 public class Worker(IDataRepository dataRepository, ILabelService labelService, IConfiguration config, ILogger<Worker> logger) : BackgroundService
 {
     private readonly ATDid _labelerDid = ATDid.Create(config.GetValue<string>("Labeler:Did"))!;
-    private readonly HashSet<ATDid> _subscribers = [];
+    private List<ATDid> _subscribers = [];
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var atWebProtocol = new ATJetStreamBuilder().Build();
         atWebProtocol.OnRecordReceived += RecordReceivedHandler;
         await atWebProtocol.ConnectAsync();
+
+        // backfill on startup to get anything we missed
+        _subscribers = (await dataRepository.GetActiveSubscribers()).Select(x => x.Did).ToList();
+        foreach (var subscriber in _subscribers)
+        {
+            await Backfill(subscriber);
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -74,7 +81,6 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
                 };
 
                 await dataRepository.SavePost(newPost);
-                logger.LogInformation("Saving new post: {newPost}", newPost);
             }
         }
     }
@@ -103,8 +109,9 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
         string? cursor = null;
         string? lastCursor = null;
         var earliestTimeSeen = DateTime.UtcNow;
+        var bail = false;
 
-        while (earliestTimeSeen > DateTime.UtcNow.AddMonths(-1))
+        while (earliestTimeSeen > DateTime.UtcNow.AddMonths(-1) || bail)
         {
             if (cursor == null && lastCursor != null)
             {
@@ -135,7 +142,6 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
                         };
 
                         await dataRepository.SavePost(newPost);
-                        logger.LogInformation("Saved new post: {newPost}", newPost);
 
                         if (post.CreatedAt.GetValueOrDefault(DateTime.UtcNow) < earliestTimeSeen)
                         {
@@ -146,10 +152,12 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
 
                 lastCursor = cursor;
                 cursor = success.Cursor;
-            }, error =>
+            }, async error =>
             {
                 logger.LogError(error.Detail?.Message, error.Detail?.StackTrace);
-                return Task.CompletedTask;
+                await dataRepository.DeactivateSubscriber(did);
+                _subscribers.Remove(did);
+                bail = true;
             });
         }
 

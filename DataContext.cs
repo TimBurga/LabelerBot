@@ -45,6 +45,8 @@ public class DataContext : DbContext
                 .HasConversion(
                     save => save.ToString(),
                     load => ATDid.Create(load)!);
+
+            entity.Property(x => x.Active).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Label>(entity =>
