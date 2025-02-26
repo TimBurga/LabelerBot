@@ -1,4 +1,5 @@
-﻿using FishyFlip.Models;
+﻿using FishyFlip.Lexicon.App.Bsky.Actor;
+using FishyFlip.Models;
 using LabelerBot.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +15,7 @@ public interface IDataRepository
     Task ClearLabels(ATDid did);
     Task<List<Subscriber>> GetActiveSubscribers();
     Task DeactivateSubscriber(ATDid did);
+    Task UpdateProfile(ProfileViewDetailed? profile);
 }
 
 public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILogger<DataRepository> logger) : IDataRepository
@@ -34,7 +36,7 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
             context.Posts.Add(imagePost);
             await context.SaveChangesAsync();
             logger.LogDebug("Saved new post for {did}: {timestamp} Valid: [{imagePost.ValidAlt}]", 
-                imagePost.Did, imagePost.Timestamp, imagePost.ValidAlt);
+                imagePost.Did.Handler, imagePost.Timestamp, imagePost.ValidAlt);
         }
         catch (Exception ex)
         {
@@ -110,6 +112,27 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         var sub = await dbContext.Subscribers.SingleAsync(x => x.Did.Equals(did));
         sub.Active = false;
         await dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateProfile(ProfileViewDetailed? profile)
+    {
+        if (string.IsNullOrWhiteSpace(profile?.Handle.Handle))
+        {
+            return;
+        }
+
+        var dbContext = await dbContextFactory.CreateDbContextAsync();
+        var sub = await dbContext.Subscribers.SingleOrDefaultAsync(x => x.Did.Equals(profile.Did));
+        if (sub == null)
+        {
+            logger.LogWarning("Subscriber {did} not found", profile.Did.Handler);
+            return;
+        }
+
+        sub.Handle = profile.Handle.Handle;
+        await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("Saved handle for {did}: {handle}", profile.Did.Handler, profile.Handle.Handle);
     }
 
     private async Task ClearExisting(ATDid did)

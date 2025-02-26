@@ -11,7 +11,7 @@ public interface ILabeler
     Task<bool> Negate(ATDid did, LabelLevel oldLevel);
 }
 
-public class Labeler(ILabelerSessionManager sessionManager, IConfiguration config, ILogger<Labeler> logger)
+public class Labeler(IAtProtoSessionManager sessionManager, IConfiguration config, ILogger<Labeler> logger)
     : ILabeler
 {
     private readonly ATDid _labelerDid = ATDid.Create(config.GetValue<string>("Labeler:Did")!)!;
@@ -19,6 +19,7 @@ public class Labeler(ILabelerSessionManager sessionManager, IConfiguration confi
     public async Task<bool> Apply(ATDid did, LabelLevel newLevel)
     {
         var atproto = await sessionManager.GetSession();
+
         var label = new ModEventLabel
         {
             CreateLabelVals = [newLevel.ToString().ToLower()],

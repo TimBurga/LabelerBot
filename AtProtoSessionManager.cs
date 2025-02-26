@@ -3,19 +3,19 @@ using FishyFlip.Models;
 
 namespace LabelerBot;
 
-public interface ILabelerSessionManager
+public interface IAtProtoSessionManager
 {
     Task<ATProtocol> GetSession();
 }
 
-public class LabelerSessionManager : ILabelerSessionManager
+public class AtProtoSessionManager : IAtProtoSessionManager
 {
-    private readonly ILogger<LabelerSessionManager> _logger;
+    private readonly ILogger<AtProtoSessionManager> _logger;
     private readonly ATDid _labelerDid;
     private readonly string _labelerPassword;
     private readonly ATProtocol _atproto;
 
-    public LabelerSessionManager(IConfiguration config, ILogger<LabelerSessionManager> logger)
+    public AtProtoSessionManager(IConfiguration config, ILogger<AtProtoSessionManager> logger)
     {
         _logger = logger;
         _labelerDid = ATDid.Create(config.GetValue<string>("Labeler:Did")!)!;

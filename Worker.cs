@@ -193,6 +193,16 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
             });
         }
 
+        var result = await atproto.Actor.GetProfileAsync(did);
+        if (result.IsT1)
+        {
+            var error = result.AsT1;
+            logger.LogError(error.Detail!.Message, error.Detail.Error);
+        }
+
+        var profile = result.AsT0;
+
+        await dataRepository.UpdateProfile(profile);
         await labelService.AdjustLabel(did);
     }
     
