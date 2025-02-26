@@ -30,7 +30,7 @@ public class Labeler(ILabelerSessionManager sessionManager, IConfiguration confi
         if (result.IsT1)
         {
             var error = result.AsT1;
-            logger.LogError(error.Detail!.Message, error.Detail.StackTrace);
+            logger.LogError(error.Detail!.Message, error.Detail.Error);
         }
 
         return result.IsT0;
@@ -48,6 +48,13 @@ public class Labeler(ILabelerSessionManager sessionManager, IConfiguration confi
 
 
         var result = await atproto.ToolsOzoneModeration.EmitEventAsync(label, new RepoRef(did), _labelerDid);
+
+        if (result.IsT1)
+        {
+            var error = result.AsT1;
+            logger.LogError(error.Detail!.Message, error.Detail.Error);
+        }
+
         return result.IsT0;
     }
 

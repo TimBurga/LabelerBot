@@ -1,5 +1,4 @@
-﻿using FishyFlip.Lexicon.App.Bsky.Feed;
-using FishyFlip.Models;
+﻿using FishyFlip.Models;
 using LabelerBot.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,7 +24,8 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         {
             var context = await dbContextFactory.CreateDbContextAsync();
 
-            var existing = await context.Posts.SingleOrDefaultAsync(x => x.Did.Equals(imagePost.Did) && x.Cid.Equals(imagePost.Cid));
+            var existing = await context.Posts.SingleOrDefaultAsync(x => x.Did.Equals(imagePost.Did) && 
+                                                                         x.Cid.Equals(imagePost.Cid));
             if (existing != null)
             {
                 return;
@@ -33,7 +33,8 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
 
             context.Posts.Add(imagePost);
             await context.SaveChangesAsync();
-            logger.LogDebug($"Saved new post: [Did {imagePost.Did}] [{imagePost.Timestamp}] [Valid: {imagePost.ValidAlt}]");
+            logger.LogDebug("Saved new post for {did}: {timestamp} Valid: [{imagePost.ValidAlt}]", 
+                imagePost.Did, imagePost.Timestamp, imagePost.ValidAlt);
         }
         catch (Exception ex)
         {

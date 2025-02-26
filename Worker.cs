@@ -14,23 +14,41 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var atWebProtocol = new ATJetStreamBuilder().Build();
-        atWebProtocol.OnRecordReceived += RecordReceivedHandler;
-        await atWebProtocol.ConnectAsync();
+        ATJetStream atWebProtocol = null!;
+        logger.LogInformation("Starting LabelerBot");
 
-        // backfill on startup to get anything we missed
-        _subscribers = (await dataRepository.GetActiveSubscribers()).Select(x => x.Did).ToList();
-        foreach (var subscriber in _subscribers)
+        try
         {
-            await Backfill(subscriber);
-        }
+            _subscribers = (await dataRepository.GetActiveSubscribers()).Select(x => x.Did).ToList();
+            logger.LogInformation("Initializing with {count} subscribers", _subscribers.Count);
 
-        while (!stoppingToken.IsCancellationRequested)
+            atWebProtocol = new ATJetStreamBuilder().Build();
+            atWebProtocol.OnRecordReceived += RecordReceivedHandler;
+            await atWebProtocol.ConnectAsync();
+
+            // backfill on startup to get anything we missed
+            await BackfillAll();
+
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+            }
+
+            logger.LogInformation("Stopping LabelerBot");
+
+            atWebProtocol.OnRecordReceived -= RecordReceivedHandler;
+            await atWebProtocol.CloseAsync();
+        }
+        catch (Exception ex)
         {
+            logger.LogCritical(ex.Message, ex);
+            atWebProtocol.OnRecordReceived -= RecordReceivedHandler;
+            await atWebProtocol.CloseAsync();
         }
-
-        atWebProtocol.OnRecordReceived -= RecordReceivedHandler;
-        await atWebProtocol.CloseAsync();
+        finally
+        {
+            logger.LogInformation("LabelerBot is kill");
+        }
     }
 
     private async void RecordReceivedHandler(object? sender, JetStreamATWebSocketRecordEventArgs message)
@@ -68,7 +86,7 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
 
         if (post.Embed is EmbedImages imgPost)
         {
-            logger.LogInformation($"Processing new post with images from {record.Did}");
+            logger.LogInformation("Processing new post with images from {did}", record.Did);
 
             foreach (var image in imgPost.Images)
             {
@@ -99,12 +117,26 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
         await Backfill(record.Did!);
     }
 
-    private async Task Backfill(ATDid did)
+    private async Task BackfillAll()
     {
-        logger.LogInformation($"Backfilling posts for {did}");
-
         var atProtocolBuilder = new ATProtocolBuilder();
-        var atProtocol = atProtocolBuilder.Build();
+        var atproto = atProtocolBuilder.Build();
+
+        foreach(var subscriber in _subscribers)
+        {
+            await Backfill(subscriber, atproto);
+        }
+    }
+
+    private async Task Backfill(ATDid did, ATProtocol? atproto = null)
+    {
+        logger.LogInformation("Backfilling posts for {did}", did);
+
+        if (atproto == null)
+        {
+            var atProtocolBuilder = new ATProtocolBuilder();
+            atproto = atProtocolBuilder.Build();
+        }
 
         string? cursor = null;
         string? lastCursor = null;
@@ -118,7 +150,7 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
                 break;
             }
 
-            var records = await atProtocol.Repo.ListRecordsAsync(did, "app.bsky.feed.post", 50, cursor);
+            var records = await atproto.Repo.ListRecordsAsync(did, "app.bsky.feed.post", 50, cursor);
 
             await records.SwitchAsync(async success =>
             {
@@ -154,7 +186,7 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
                 cursor = success.Cursor;
             }, async error =>
             {
-                logger.LogError(error.Detail?.Message, error.Detail?.StackTrace);
+                logger.LogError(error.Detail?.Message, error.Detail.Error);
                 await dataRepository.DeactivateSubscriber(did);
                 _subscribers.Remove(did);
                 bail = true;

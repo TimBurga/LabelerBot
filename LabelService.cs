@@ -59,7 +59,7 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
 
     public async Task Reprocess()
     {
-        logger.LogInformation("Reprocessing all subscribers");
+        logger.LogInformation("Reprocessing labels for all subscribers");
 
         var subs = await dataRepository.GetActiveSubscribers();
         foreach (var sub in subs)
