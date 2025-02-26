@@ -9,7 +9,7 @@ builder.Services.AddDbContextFactory<DataContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
 });
 
-builder.Services.AddLogging(x => x.AddSimpleConsole(c => c.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] "));
+builder.Services.AddLogging(x => x.AddJsonConsole(c => c.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] "));
 
 builder.Services.AddTransient<IDataRepository, DataRepository>();
 builder.Services.AddTransient<ILabelService, LabelService>();

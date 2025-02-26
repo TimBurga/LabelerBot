@@ -33,7 +33,7 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
 
             context.Posts.Add(imagePost);
             await context.SaveChangesAsync();
-            logger.LogInformation($"Saved new post: [Did {imagePost.Did}] [{imagePost.Timestamp}] [Valid: {imagePost.ValidAlt}]");
+            logger.LogDebug($"Saved new post: [Did {imagePost.Did}] [{imagePost.Timestamp}] [Valid: {imagePost.ValidAlt}]");
         }
         catch (Exception ex)
         {
