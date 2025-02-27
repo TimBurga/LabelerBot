@@ -1,3 +1,4 @@
+using System.Net.WebSockets;
 using FishyFlip;
 using FishyFlip.Events;
 using FishyFlip.Lexicon.App.Bsky.Embed;
@@ -11,10 +12,13 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
 {
     private readonly ATDid _labelerDid = ATDid.Create(config.GetValue<string>("Labeler:Did"))!;
     private List<ATDid> _subscribers = [];
-    
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    private ATJetStream? _atproto;
+    private CancellationToken _cancellationToken = CancellationToken.None;
+
+
+    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        ATJetStream atWebProtocol = null!;
+        _cancellationToken = cancellationToken;
         logger.LogInformation("Starting LabelerBot");
 
         try
@@ -22,32 +26,55 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
             _subscribers = (await dataRepository.GetActiveSubscribers()).Select(x => x.Did).ToList();
             logger.LogInformation("Initializing with {count} subscribers", _subscribers.Count);
 
-            atWebProtocol = new ATJetStreamBuilder().Build();
-            atWebProtocol.OnRecordReceived += RecordReceivedHandler;
-            await atWebProtocol.ConnectAsync();
+            _atproto = new ATJetStreamBuilder().Build();
+            _atproto.OnRecordReceived += RecordReceivedHandler;
+            _atproto.OnConnectionUpdated += OnConnectionUpdated;
+            await _atproto.ConnectAsync(token: cancellationToken);
 
             // backfill on startup to get anything we missed
-            await BackfillAll();
+            await BackfillAll(cancellationToken);
 
+            logger.LogDebug("Backfill complete - listening for updates");
 
-            while (!stoppingToken.IsCancellationRequested)
+            while (!cancellationToken.IsCancellationRequested)
             {
             }
 
             logger.LogInformation("Stopping LabelerBot");
 
-            atWebProtocol.OnRecordReceived -= RecordReceivedHandler;
-            await atWebProtocol.CloseAsync();
         }
         catch (Exception ex)
         {
             logger.LogCritical(ex.Message, ex);
-            atWebProtocol.OnRecordReceived -= RecordReceivedHandler;
-            await atWebProtocol.CloseAsync();
         }
         finally
         {
+            if (_atproto != null)
+            {
+                _atproto.OnConnectionUpdated -= OnConnectionUpdated;
+                _atproto.OnRecordReceived -= RecordReceivedHandler;
+                await _atproto.CloseAsync();
+            }
+
             logger.LogInformation("LabelerBot is kill");
+        }
+    }
+
+    private async void OnConnectionUpdated(object? sender, SubscriptionConnectionStatusEventArgs e)
+    {
+        try
+        {
+            logger.LogInformation("Jetstream connection status updated: {status}", e.State);
+
+            if (e.State != WebSocketState.Open && !_cancellationToken.IsCancellationRequested)
+            {
+                logger.LogInformation("Attempting to reconnect to Jetstream");
+                await _atproto!.ConnectAsync(token: _cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in Jetstream connection updated handler");
         }
     }
 
@@ -117,13 +144,17 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
         await Backfill(record.Did!);
     }
 
-    private async Task BackfillAll()
+    private async Task BackfillAll(CancellationToken stoppingToken)
     {
         var atProtocolBuilder = new ATProtocolBuilder();
         var atproto = atProtocolBuilder.Build();
 
         foreach(var subscriber in _subscribers)
         {
+            if (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
             await Backfill(subscriber, atproto);
         }
     }
