@@ -25,20 +25,30 @@ public class AtProtoSessionManager : IAtProtoSessionManager
 
     public async Task<ATProtocol> GetSession()
     {
-        if (!_atproto.IsAuthenticated)
+        try
         {
-            _logger.LogDebug("Authenticating as {did}", _labelerDid.Handler);
-            var (session, error) = await _atproto.AuthenticateWithPasswordResultAsync(_labelerDid.Handler, _labelerPassword);
-
-            if (session is null)
+            if (!_atproto.IsAuthenticated)
             {
-                throw new Exception(error!.Detail?.Message);
+                _logger.LogDebug("Authenticating as {did}", _labelerDid.Handler);
+                var (session, error) = await _atproto.AuthenticateWithPasswordResultAsync(_labelerDid.Handler, _labelerPassword);
+
+                if (session is null)
+                {
+                    _logger.LogInformation("Refreshing authenticated session");
+                    await _atproto.RefreshAuthSessionAsync();
+                }
+
+                _logger.LogDebug("Got new session {jwt}", session.AccessJwt);
             }
 
-            _logger.LogDebug("Got new session {jwt}", session.AccessJwt);
+            _logger.LogDebug("Session expires at {exp}", _atproto.Session?.ExpiresIn);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get authenticated session");
         }
 
-        _logger.LogDebug("Session expires at {exp}", _atproto.Session?.ExpiresIn);
         return _atproto;
+
     }
 }
