@@ -23,35 +23,38 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
         var totalPosts = posts.Count;
         var postsWithValidAlt = posts.Count(y => y.ValidAlt);
         var percentage = (decimal)postsWithValidAlt / (decimal)totalPosts;
-        var newLevel = GetLabelLevel(percentage * 100);
+        var level = GetLabelLevel(percentage * 100);
 
         logger.LogInformation("{did}: {postsWithValidAlt} / {totalPosts} = {percentage} [{newLevel}]", 
-            did.Handler, postsWithValidAlt, totalPosts, percentage, newLevel);
+            did.Handler, postsWithValidAlt, totalPosts, Math.Round(percentage, 3), level);
 
         var currentLabel = await dataRepository.GetCurrentLabel(did);
 
         if (currentLabel.HasValue)
         {
-            if (currentLabel.Value != newLevel)
+            if (currentLabel.Value != level)
             {
                 if (await labeler.Negate(did, currentLabel.Value))
                 {
+                    logger.LogInformation("Removed old label {label} for {did}", currentLabel.Value, did);
                     await dataRepository.ClearLabels(did);
                 }
 
-                if (await labeler.Apply(did, newLevel))
+                if (await labeler.Apply(did, level))
                 {
-                    await dataRepository.AddLabel(did, newLevel);
+                    logger.LogInformation("Added new label {label} for {did}", level, did);
+                    await dataRepository.AddLabel(did, level);
                 }
             }
         }
         else
         {
-            if (newLevel > LabelLevel.None)
+            if (level > LabelLevel.None)
             {
-                if (await labeler.Apply(did, newLevel))
+                if (await labeler.Apply(did, level))
                 {
-                    await dataRepository.AddLabel(did, newLevel);
+                    logger.LogInformation("Added new label {label} for {did}", level, did);
+                    await dataRepository.AddLabel(did, level);
                 }
             }
         }

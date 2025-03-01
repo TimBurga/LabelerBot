@@ -127,6 +127,8 @@ public class Worker(IDataRepository dataRepository, ILabelService labelService, 
 
                 await dataRepository.SavePost(newPost);
             }
+
+            await labelService.AdjustLabel(record.Did);
         }
     }
 
