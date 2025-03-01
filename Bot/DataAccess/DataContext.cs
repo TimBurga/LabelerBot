@@ -1,15 +1,11 @@
 ﻿using FishyFlip.Models;
-using LabelerBot.Models;
+using LabelerBot.Bot.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace LabelerBot;
+namespace LabelerBot.Bot.DataAccess;
 
-public class DataContext : DbContext
+public class DataContext(DbContextOptions<DataContext> options) : DbContext(options)
 {
-    public DataContext(DbContextOptions<DataContext> options) : base(options) 
-    {
-    }
-
     public DbSet<ImagePost> Posts { get; set; }
     public DbSet<Subscriber> Subscribers { get; set; }
     public DbSet<Label> Labels { get; set; }

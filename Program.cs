@@ -1,9 +1,10 @@
-using LabelerBot;
+using LabelerBot.Bot;
+using LabelerBot.Bot.DataAccess;
 using Microsoft.EntityFrameworkCore;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<LabelerBot.Bot.LabelerBot>();
 builder.Services.AddDbContextFactory<DataContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
@@ -13,7 +14,7 @@ builder.Services.AddLogging(x => x.AddJsonConsole(c => c.TimestampFormat = "[yyy
 
 builder.Services.AddTransient<IDataRepository, DataRepository>();
 builder.Services.AddTransient<ILabelService, LabelService>();
-builder.Services.AddTransient<ILabeler, Labeler>();
+builder.Services.AddTransient<ILabeler, OzoneLabeler>();
 
 builder.Services.AddSingleton<IAtProtoSessionManager, AtProtoSessionManager>();
 

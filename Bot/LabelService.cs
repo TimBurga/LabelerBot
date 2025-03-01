@@ -1,6 +1,7 @@
 ﻿using FishyFlip.Models;
+using LabelerBot.Bot.DataAccess;
 
-namespace LabelerBot;
+namespace LabelerBot.Bot;
 
 public interface ILabelService
 {
@@ -22,10 +23,10 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
 
         var totalPosts = posts.Count;
         var postsWithValidAlt = posts.Count(y => y.ValidAlt);
-        var percentage = (decimal)postsWithValidAlt / (decimal)totalPosts;
+        var percentage = postsWithValidAlt / (decimal)totalPosts;
         var level = GetLabelLevel(percentage * 100);
 
-        logger.LogInformation("{did}: {postsWithValidAlt} / {totalPosts} = {percentage} [{newLevel}]", 
+        logger.LogInformation("{did}: {postsWithValidAlt} of {totalPosts} = {percentage} [{newLevel}]", 
             did.Handler, postsWithValidAlt, totalPosts, Math.Round(percentage, 3), level);
 
         var currentLabel = await dataRepository.GetCurrentLabel(did);

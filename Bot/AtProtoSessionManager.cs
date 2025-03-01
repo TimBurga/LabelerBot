@@ -2,7 +2,7 @@
 using FishyFlip.Models;
 using Timer = System.Timers.Timer;
 
-namespace LabelerBot;
+namespace LabelerBot.Bot;
 
 public interface IAtProtoSessionManager
 {
@@ -15,7 +15,7 @@ public class AtProtoSessionManager : IAtProtoSessionManager
     private readonly ATDid _labelerDid;
     private readonly string _labelerPassword;
     private readonly ATProtocol _atproto;
-    private Timer _refreshTimer;
+    private readonly Timer _refreshTimer;
 
     public AtProtoSessionManager(IConfiguration config, ILogger<AtProtoSessionManager> logger)
     {
@@ -24,7 +24,7 @@ public class AtProtoSessionManager : IAtProtoSessionManager
         _labelerPassword = config.GetValue<string>("Labeler:Password")!;
         _atproto = new ATProtocolBuilder().WithOzoneProxy(_labelerDid).Build();
         _refreshTimer = new Timer();
-        _refreshTimer.Elapsed += async (sender, args) => await RefreshSession();
+        _refreshTimer.Elapsed += async (_, _) => await RefreshSession();
     }
 
     private async Task RefreshSession()
@@ -35,7 +35,7 @@ public class AtProtoSessionManager : IAtProtoSessionManager
         if (session == null)
         {
             _logger.LogError("Failed to refresh session - trying new session");
-            var (newSession, error) = await _atproto.AuthenticateWithPasswordResultAsync(_labelerDid.Handler, _labelerPassword);
+            var (_, error) = await _atproto.AuthenticateWithPasswordResultAsync(_labelerDid.Handler, _labelerPassword);
             if (error != null)
             {
                 _logger.LogCritical("Failed to get new session: {error}", error);
@@ -56,16 +56,20 @@ public class AtProtoSessionManager : IAtProtoSessionManager
         {
             if (!_atproto.IsAuthenticated)
             {
-                _logger.LogDebug("Authenticating as {did}", _labelerDid.Handler);
+                _logger.LogInformation("Authenticating as {did}", _labelerDid.Handler);
                 var (session, error) = await _atproto.AuthenticateWithPasswordResultAsync(_labelerDid.Handler, _labelerPassword);
+                if (error != null)
+                {
+                    throw new Exception($"Failed to get new session: {error.Detail?.Message} - {error.Detail?.Error}");
+                }
 
-                _refreshTimer.Interval = session.ExpiresIn.Subtract(DateTime.Now).Add(TimeSpan.FromSeconds(10)).TotalMilliseconds;
+                _refreshTimer.Interval = session!.ExpiresIn.Subtract(DateTime.Now).Add(TimeSpan.FromSeconds(10)).TotalMilliseconds;
                 _refreshTimer.Start();
 
-                _logger.LogDebug("Got new session {jwt}", session.AccessJwt);
+                _logger.LogInformation("Got new session {jwt}", session.AccessJwt);
             }
 
-            _logger.LogDebug("Session expires at {exp}", _atproto.Session?.ExpiresIn);
+            _logger.LogInformation("Session expires at {exp}", _atproto.Session?.ExpiresIn);
         }
         catch (Exception ex)
         {

@@ -2,7 +2,7 @@
 using FishyFlip.Lexicon.Tools.Ozone.Moderation;
 using FishyFlip.Models;
 
-namespace LabelerBot;
+namespace LabelerBot.Bot;
 
 
 public interface ILabeler
@@ -11,7 +11,7 @@ public interface ILabeler
     Task<bool> Negate(ATDid did, LabelLevel oldLevel);
 }
 
-public class Labeler(IAtProtoSessionManager sessionManager, IConfiguration config, ILogger<Labeler> logger)
+public class OzoneLabeler(IAtProtoSessionManager sessionManager, IConfiguration config, ILogger<OzoneLabeler> logger)
     : ILabeler
 {
     private readonly ATDid _labelerDid = ATDid.Create(config.GetValue<string>("Labeler:Did")!)!;

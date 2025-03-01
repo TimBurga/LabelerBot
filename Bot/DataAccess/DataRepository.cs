@@ -1,9 +1,9 @@
 ﻿using FishyFlip.Lexicon.App.Bsky.Actor;
 using FishyFlip.Models;
-using LabelerBot.Models;
+using LabelerBot.Bot.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace LabelerBot;
+namespace LabelerBot.Bot.DataAccess;
 
 public interface IDataRepository
 {
@@ -35,7 +35,7 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
 
             context.Posts.Add(imagePost);
             await context.SaveChangesAsync();
-            logger.LogDebug("Saved new post for {did}: {timestamp} Valid: [{imagePost.ValidAlt}]", 
+            logger.LogInformation("Saved new post for {did}: {timestamp} Valid: [{imagePost.ValidAlt}]", 
                 imagePost.Did.Handler, imagePost.Timestamp, imagePost.ValidAlt);
         }
         catch (Exception ex)
@@ -55,7 +55,8 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         var newSubscriber = new Subscriber
         {
             Did = subscriber,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow,
+            Active = true
         };
         dbContext.Subscribers.Add(newSubscriber);
 

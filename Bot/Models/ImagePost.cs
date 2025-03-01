@@ -1,6 +1,6 @@
 ﻿using FishyFlip.Models;
 
-namespace LabelerBot.Models;
+namespace LabelerBot.Bot.Models;
 
 #nullable disable
 
