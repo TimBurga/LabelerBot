@@ -76,9 +76,10 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
     {
         return percentage switch
         {
-            >= 90 => LabelLevel.Gold,
-            >= 70 => LabelLevel.Silver,
-            >= 50 => LabelLevel.Bronze,
+            >= 100 => LabelLevel.Hero,
+            >= 95 => LabelLevel.Gold,
+            >= 85 => LabelLevel.Silver,
+            >= 70 => LabelLevel.Bronze,
             _ => LabelLevel.None
         };
     }

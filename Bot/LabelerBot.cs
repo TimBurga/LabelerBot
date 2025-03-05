@@ -269,7 +269,8 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
 public enum LabelLevel
 {
     None = 0,
-    Bronze = 50,
-    Silver = 70,
-    Gold = 90
+    Bronze = 70,
+    Silver = 85,
+    Gold = 95,
+    Hero = 100
 }
