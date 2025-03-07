@@ -160,6 +160,8 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
             }
             await Backfill(subscriber, atproto);
         }
+
+        logger.LogInformation("Backfill complete");
     }
 
     private async Task Backfill(ATDid did, ATProtocol? atproto = null)
@@ -177,9 +179,9 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         var earliestTimeSeen = DateTime.UtcNow;
         var bail = false;
 
-        while (earliestTimeSeen > DateTime.UtcNow.AddMonths(-1) || bail)
+        while (earliestTimeSeen > DateTime.UtcNow.AddMonths(-1))
         {
-            if (cursor == null && lastCursor != null)
+            if (bail)
             {
                 break;
             }
@@ -218,6 +220,7 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
 
                 lastCursor = cursor;
                 cursor = success.Cursor;
+                bail = cursor == null && lastCursor != null;
             }, async error =>
             {
                 logger.LogError(error.Detail?.Message, error.Detail?.Error);
@@ -232,6 +235,7 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         {
             var error = result.AsT1;
             logger.LogError(error.Detail!.Message, error.Detail.Error);
+            return;
         }
 
         var profile = result.AsT0;
