@@ -142,9 +142,9 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
 
         await dataRepository.AddSubscriber(record.Did!);
 
-        _subscribers.Add(record.Did!);
-
         await Backfill(record.Did!);
+
+        _subscribers.Add(record.Did!);
     }
 
     private async Task BackfillAll(CancellationToken stoppingToken)
