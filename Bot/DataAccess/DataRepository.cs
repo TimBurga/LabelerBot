@@ -50,8 +50,6 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
     {
         logger.LogInformation("Adding subscriber {did}", subscriber.Handler);
 
-        await DeleteSubscriber(subscriber);
-
         var dbContext = await dbContextFactory.CreateDbContextAsync();
 
         var newSubscriber = new Subscriber

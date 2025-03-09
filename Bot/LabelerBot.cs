@@ -162,6 +162,7 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
 
     private async Task HandleLike(ATDid did, string rkey)
     {
+        await HandleUnlike(did);
         await dataRepository.AddSubscriber(did, rkey);
 
         await Backfill(did);
@@ -174,6 +175,10 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         logger.LogInformation("Removing subscriber {did}", did);
         _subscribers.Remove(did);
         var currentLabel = await dataRepository.DeleteSubscriber(did);
+        if (currentLabel == LabelLevel.None)
+        {
+            return;
+        }
         if (!await labelService.RemoveLabel(did, currentLabel))
         {
             logger.LogError("Failed to remove label for {did} - manual removal required", did);
