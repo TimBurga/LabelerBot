@@ -12,3 +12,8 @@ GO
 
 ALTER TABLE [dbo].[Subscriber]
   ADD [Handle] VARCHAR(100) NULL
+GO
+
+ALTER TABLE [dbo].[Subscriber]
+  ADD [RKey] VARCHAR(100) NULL
+GO

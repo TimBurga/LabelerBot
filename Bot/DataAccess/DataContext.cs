@@ -43,6 +43,10 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
                     load => ATDid.Create(load)!);
 
             entity.Property(x => x.Active).HasDefaultValue(true);
+
+            entity.Property(x => x.Handle).HasMaxLength(100);
+            
+            entity.Property(x => x.Rkey).HasColumnName("RKey").HasMaxLength(100);
         });
 
         modelBuilder.Entity<Label>(entity =>

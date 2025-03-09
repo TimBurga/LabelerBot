@@ -10,4 +10,5 @@ public class Subscriber
     public DateTime Timestamp { get; set; }
     public bool Active { get; set; }
     public string Handle { get; set; }
+    public string Rkey { get; set; }
 }

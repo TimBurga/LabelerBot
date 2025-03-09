@@ -12,7 +12,7 @@ namespace LabelerBot.Bot;
 public class LabelerBot(IDataRepository dataRepository, ILabelService labelService, IConfiguration config, ILogger<LabelerBot> logger) : BackgroundService
 {
     private readonly ATDid _labelerDid = ATDid.Create(config.GetValue<string>("Labeler:Did")!)!;
-    private List<ATDid> _subscribers = [];
+    private Dictionary<ATDid, string> _subscribers = [];
     private ATJetStream? _atproto;
     private CancellationToken _cancellationToken = CancellationToken.None;
 
@@ -24,7 +24,7 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
 
         try
         {
-            _subscribers = (await dataRepository.GetActiveSubscribers()).Select(x => x.Did).ToList();
+            _subscribers = (await dataRepository.GetActiveSubscribers()).ToDictionary(k => k.Did, v => v.Rkey);
             logger.LogInformation("Initializing with {count} subscribers", _subscribers.Count);
 
             _atproto = new ATJetStreamBuilder().Build();
@@ -32,10 +32,10 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
             _atproto.OnConnectionUpdated += OnConnectionUpdated;
             await _atproto.ConnectAsync(token: cancellationToken);
 
-            // backfill on startup to get anything we missed
+            //backfill on startup to get anything we missed
             await BackfillAll(cancellationToken);
 
-            logger.LogInformation("Backfill complete - listening for updates");
+            logger.LogInformation("Listening for updates");
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -69,7 +69,7 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
 
             if (e.State != WebSocketState.Open && !_cancellationToken.IsCancellationRequested)
             {
-                logger.LogInformation("Attempting to reconnect to Jetstream");
+                logger.LogDebug("Attempting to reconnect to Jetstream");
                 await _atproto!.ConnectAsync(token: _cancellationToken);
             }
         }
@@ -88,14 +88,46 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
                 return;
             }
 
-            switch (message.Record.Commit!.Record)
+            switch (message.Record.Commit!.Operation)
             {
-                case Post post:
-                    await HandlePost(message.Record, post);
+                case ATWebSocketCommitType.Create:
+
+                    switch (message.Record.Commit!.Record)
+                    {
+                        case Post post:
+                            if (!_subscribers.ContainsKey(message.Record.Did!))
+                            {
+                                return;
+                            }
+                            await HandlePost(message.Record.Did!, message.Record.Commit.Cid!, post);
+                            break;
+
+                        case Like like:
+                            if (like.Subject?.Uri.Did == null || !like.Subject.Uri.Did.Equals(_labelerDid))
+                            {
+                                return;
+                            }
+
+                            await HandleLike(message.Record.Did!, message.Record.Commit.RKey!);
+                            break;
+                    }
                     break;
 
-                case Like like:
-                    await HandleLike(message.Record, like);
+                case ATWebSocketCommitType.Delete:
+
+                    var commit = message.Record.Commit;
+
+                    if (commit.Collection == Constants.LikesCollectionName)
+                    {
+                        if (_subscribers.ContainsKey(message.Record.Did!))
+                        {
+                            if (_subscribers[message.Record.Did!] == commit.RKey)
+                            {
+                                await HandleUnlike(message.Record.Did!);
+
+                            }
+                        }
+                    }
                     break;
             }
         }
@@ -105,23 +137,18 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         }
     }
 
-    private async Task HandlePost(ATWebSocketRecord record, Post post)
+    private async Task HandlePost(ATDid did, string cid, Post post)
     {
-        if (!_subscribers.Contains(record.Did!))
-        {
-            return;
-        }
-
         if (post.Embed is EmbedImages imgPost)
         {
-            logger.LogInformation("Processing new post with images from {did}", record.Did!);
+            logger.LogInformation("Processing new post with images from {did}", did);
 
             foreach (var image in imgPost.Images)
             {
                 var newPost = new ImagePost
                 {
-                    Cid = record.Commit!.Cid?.ToString(),
-                    Did = record.Did,
+                    Cid = cid,
+                    Did =did,
                     Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow),
                     ValidAlt = IsValidAlt(image.Alt)
                 };
@@ -129,22 +156,28 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
                 await dataRepository.SavePost(newPost);
             }
 
-            await labelService.AdjustLabel(record.Did!);
+            await labelService.AdjustLabel(did);
         }
     }
 
-    private async Task HandleLike(ATWebSocketRecord record, Like like)
+    private async Task HandleLike(ATDid did, string rkey)
     {
-        if (like.Subject?.Uri.Did == null || !like.Subject.Uri.Did.Equals(_labelerDid))
+        await dataRepository.AddSubscriber(did, rkey);
+
+        await Backfill(did);
+
+        _subscribers.Add(did, rkey);
+    }
+
+    private async Task HandleUnlike(ATDid did)
+    {
+        logger.LogInformation("Removing subscriber {did}", did);
+        _subscribers.Remove(did);
+        var currentLabel = await dataRepository.DeleteSubscriber(did);
+        if (!await labelService.RemoveLabel(did, currentLabel))
         {
-            return;
+            logger.LogError("Failed to remove label for {did} - manual removal required", did);
         }
-
-        await dataRepository.AddSubscriber(record.Did!);
-
-        await Backfill(record.Did!);
-
-        _subscribers.Add(record.Did!);
     }
 
     private async Task BackfillAll(CancellationToken stoppingToken)
@@ -152,7 +185,9 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         var atProtocolBuilder = new ATProtocolBuilder();
         var atproto = atProtocolBuilder.Build();
 
-        foreach(var subscriber in _subscribers.OrderBy(x => x.Handler))
+        logger.LogInformation("Beginning backfill for all subscribers");
+
+        foreach(var subscriber in _subscribers.Keys.OrderBy(x => x.Handler))
         {
             if (stoppingToken.IsCancellationRequested)
             {
@@ -175,7 +210,7 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         }
 
         string? cursor = null;
-        string? lastCursor = null;
+        string? lastCursor;
         var earliestTimeSeen = DateTime.UtcNow;
         var bail = false;
 
@@ -186,7 +221,7 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
                 break;
             }
 
-            var records = await atproto.Repo.ListRecordsAsync(did, "app.bsky.feed.post", 50, cursor, cancellationToken:_cancellationToken);
+            var records = await atproto.Repo.ListRecordsAsync(did, Constants.PostsCollectionName, 50, cursor, cancellationToken:_cancellationToken);
 
             await records.SwitchAsync(async success =>
             {
@@ -256,7 +291,12 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
             return false;
         }
 
-        if (record.Commit?.Operation != ATWebSocketCommitType.Create)
+        if (record.Commit == null)
+        {
+            return false;
+        }
+
+        if (record.Commit.Operation is not ATWebSocketCommitType.Create and not ATWebSocketCommitType.Delete)
         {
             return false;
         }

@@ -7,6 +7,7 @@ public interface ILabelService
 {
     Task AdjustLabel(ATDid did);
     Task Reprocess();
+    Task<bool> RemoveLabel(ATDid did, LabelLevel currentLabel);
 }
 
 public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILogger<LabelService> logger) : ILabelService
@@ -70,6 +71,11 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
         {
             await AdjustLabel(sub.Did);
         }
+    }
+
+    public async Task<bool> RemoveLabel(ATDid did, LabelLevel currentLabel)
+    {
+        return await labeler.Negate(did, currentLabel);
     }
 
     private static LabelLevel GetLabelLevel(decimal percentage)

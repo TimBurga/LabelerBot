@@ -8,7 +8,7 @@ namespace LabelerBot.Bot.DataAccess;
 public interface IDataRepository
 {
     Task SavePost(ImagePost imagePost);
-    Task AddSubscriber(ATDid subscriber);
+    Task AddSubscriber(ATDid subscriber, string rkey);
     Task<List<ImagePost>> GetValidPosts(ATDid did);
     Task<LabelLevel?> GetCurrentLabel(ATDid did);
     Task AddLabel(ATDid did, LabelLevel label);
@@ -16,6 +16,8 @@ public interface IDataRepository
     Task<List<Subscriber>> GetActiveSubscribers();
     Task DeactivateSubscriber(ATDid did);
     Task UpdateProfile(ProfileViewDetailed? profile);
+    Task<bool> SubscriberExists(ATDid did, string? rkey);
+    Task<LabelLevel> DeleteSubscriber(ATDid did);
 }
 
 public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILogger<DataRepository> logger) : IDataRepository
@@ -44,17 +46,18 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         }
     }
 
-    public async Task AddSubscriber(ATDid subscriber)
+    public async Task AddSubscriber(ATDid subscriber, string rkey)
     {
         logger.LogInformation("Adding subscriber {did}", subscriber.Handler);
 
-        await ClearExisting(subscriber);
+        await DeleteSubscriber(subscriber);
 
         var dbContext = await dbContextFactory.CreateDbContextAsync();
 
         var newSubscriber = new Subscriber
         {
             Did = subscriber,
+            Rkey = rkey,
             Timestamp = DateTime.UtcNow,
             Active = true
         };
@@ -136,18 +139,32 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         logger.LogInformation("Saved handle for {did}: {handle}", profile.Did.Handler, profile.Handle.Handle);
     }
 
-    private async Task ClearExisting(ATDid did)
+    public async Task<bool> SubscriberExists(ATDid did, string? rkey)
     {
+        var dbContext = await dbContextFactory.CreateDbContextAsync();
+        return await dbContext.Subscribers.Where(x => x.Did.Equals(did) && x.Rkey.Equals(rkey)).SingleOrDefaultAsync() != null;
+    }
+
+    public async Task<LabelLevel> DeleteSubscriber(ATDid did)
+    {
+        var existingLevel = LabelLevel.None;
+
         var dbContext = await dbContextFactory.CreateDbContextAsync();
         var existingRecords = await dbContext.Posts.Where(x => x.Did.Equals(did)).ToListAsync();
         dbContext.Posts.RemoveRange(existingRecords);
 
-        var existingLabels = await dbContext.Labels.Where(x => x.Did.Equals(did)).ToListAsync();
-        dbContext.Labels.RemoveRange(existingLabels);
+        var existingLabel = await dbContext.Labels.Where(x => x.Did.Equals(did)).SingleOrDefaultAsync();
+        if (existingLabel != null)
+        {
+            existingLevel = existingLabel.Level;
+            dbContext.Labels.Remove(existingLabel);
+        }
 
         var existingSubscriber = await dbContext.Subscribers.Where(x => x.Did.Equals(did)).ToListAsync();
         dbContext.Subscribers.RemoveRange(existingSubscriber);
 
         await dbContext.SaveChangesAsync();
+
+        return existingLevel;
     }
 }
