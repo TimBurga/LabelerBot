@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Net.WebSockets;
+using System.Timers;
 using FishyFlip;
 using FishyFlip.Events;
 using FishyFlip.Lexicon.App.Bsky.Embed;
@@ -6,6 +8,7 @@ using FishyFlip.Lexicon.App.Bsky.Feed;
 using FishyFlip.Models;
 using LabelerBot.Bot.DataAccess;
 using LabelerBot.Bot.Models;
+using Timer = System.Timers.Timer;
 
 namespace LabelerBot.Bot;
 
@@ -15,7 +18,8 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
     private Dictionary<ATDid, string> _subscribers = [];
     private ATJetStream? _atproto;
     private CancellationToken _cancellationToken = CancellationToken.None;
-
+    private readonly Timer _jetstreamRetryTimer = new(5000);
+    private int _retryCount = 0;
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -31,6 +35,8 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
             _atproto.OnRecordReceived += RecordReceivedHandler;
             _atproto.OnConnectionUpdated += OnConnectionUpdated;
             await _atproto.ConnectAsync(token: cancellationToken);
+
+            _jetstreamRetryTimer.Elapsed += JetstreamRetryTimerOnElapsed;
 
             //backfill on startup to get anything we missed
             await BackfillAll(cancellationToken);
@@ -57,7 +63,35 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
                 await _atproto.CloseAsync();
             }
 
+            _jetstreamRetryTimer.Elapsed -= JetstreamRetryTimerOnElapsed; 
+
             logger.LogInformation("LabelerBot is kill");
+        }
+    }
+
+    private async void JetstreamRetryTimerOnElapsed(object? sender, ElapsedEventArgs e)
+    {
+        _jetstreamRetryTimer.Stop();
+
+        if (_retryCount >= 10)
+        {
+            _jetstreamRetryTimer.Close();
+            logger.LogCritical($"Failed to reconnect to Jetstream after {_retryCount} attempts");
+            Process.GetCurrentProcess().Kill();
+        }
+
+        logger.LogInformation("Attempting to retry reconnection to Jetstream");
+        _retryCount++;
+
+        try
+        {
+            await _atproto.ConnectAsync(token: _cancellationToken);
+            _retryCount = 0;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("Still failed to reconnect to Jetstream. Waiting to retry...", ex);
+            _jetstreamRetryTimer.Start();
         }
     }
 
@@ -76,7 +110,16 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
             if (e.State != WebSocketState.Open && !_cancellationToken.IsCancellationRequested)
             {
                 logger.LogDebug("Attempting to reconnect to Jetstream");
-                await _atproto.ConnectAsync(token: _cancellationToken);
+                try
+                {
+                    await _atproto.ConnectAsync(token: _cancellationToken);
+                    _retryCount = 0;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("Error attempting to reconnect to Jetstream. Starting the retry timer", ex);
+                    _jetstreamRetryTimer.Start();
+                }
             }
         }
         catch (Exception ex)
@@ -270,8 +313,8 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
             }, async error =>
             {
                 logger.LogError(error.Detail?.Message, error.Detail?.Error);
-                await dataRepository.DeactivateSubscriber(did);
-                _subscribers.Remove(did);
+                //await dataRepository.DeactivateSubscriber(did);
+                //_subscribers.Remove(did);
                 bail = true;
             });
         }
