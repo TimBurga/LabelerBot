@@ -33,9 +33,7 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
             await _atproto.ConnectAsync(token: cancellationToken);
 
             //backfill on startup to get anything we missed
-            //await BackfillAll(cancellationToken);
-
-            await Backfill(ATDid.Create("did:plc:c54hcflqn6rv53qumfnxc5mj"));
+            await BackfillAll(cancellationToken);
 
             logger.LogInformation("Listening for updates");
 

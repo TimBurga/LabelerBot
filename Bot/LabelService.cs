@@ -36,11 +36,11 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, IPos
         {
             if (currentLabel.Value != level)
             {
-                //if (await labeler.Negate(did, currentLabel.Value))
-                //{
-                //    logger.LogInformation("Removed old label {label} for {did}", currentLabel.Value, did);
-                //    await dataRepository.ClearLabels(did);
-                //}
+                if (await labeler.Negate(did, currentLabel.Value))
+                {
+                    logger.LogInformation("Removed old label {label} for {did}", currentLabel.Value, did);
+                    await dataRepository.ClearLabels(did);
+                }
 
                 if (await labeler.Apply(did, level))
                 {
