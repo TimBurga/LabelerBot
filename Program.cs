@@ -15,6 +15,7 @@ builder.Services.AddLogging(x => x.AddJsonConsole(c => c.TimestampFormat = "[yyy
 builder.Services.AddTransient<IDataRepository, DataRepository>();
 builder.Services.AddTransient<ILabelService, LabelService>();
 builder.Services.AddTransient<ILabeler, OzoneLabeler>();
+builder.Services.AddTransient<IPostService, PostService>();
 
 builder.Services.AddSingleton<IAtProtoSessionManager, AtProtoSessionManager>();
 

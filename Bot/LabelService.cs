@@ -10,7 +10,7 @@ public interface ILabelService
     Task<bool> RemoveLabel(ATDid did, LabelLevel currentLabel);
 }
 
-public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILogger<LabelService> logger) : ILabelService
+public class LabelService(IDataRepository dataRepository, ILabeler labeler, IPostService poster, ILogger<LabelService> logger) : ILabelService
 {
     public async Task AdjustLabel(ATDid did)
     {
@@ -36,16 +36,20 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
         {
             if (currentLabel.Value != level)
             {
-                if (await labeler.Negate(did, currentLabel.Value))
-                {
-                    logger.LogInformation("Removed old label {label} for {did}", currentLabel.Value, did);
-                    await dataRepository.ClearLabels(did);
-                }
+                //if (await labeler.Negate(did, currentLabel.Value))
+                //{
+                //    logger.LogInformation("Removed old label {label} for {did}", currentLabel.Value, did);
+                //    await dataRepository.ClearLabels(did);
+                //}
 
                 if (await labeler.Apply(did, level))
                 {
                     logger.LogInformation("Added new label {label} for {did}", level, did);
                     await dataRepository.AddLabel(did, level);
+                    if (level > currentLabel.Value)
+                    {
+                        await poster.PostAchievement(did, level);
+                    }
                 }
             }
         }
@@ -57,6 +61,7 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, ILog
                 {
                     logger.LogInformation("Added new label {label} for {did}", level, did);
                     await dataRepository.AddLabel(did, level);
+                    await poster.PostAchievement(did, level);
                 }
             }
         }

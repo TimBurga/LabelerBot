@@ -33,7 +33,9 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
             await _atproto.ConnectAsync(token: cancellationToken);
 
             //backfill on startup to get anything we missed
-            await BackfillAll(cancellationToken);
+            //await BackfillAll(cancellationToken);
+
+            await Backfill(ATDid.Create("did:plc:c54hcflqn6rv53qumfnxc5mj"));
 
             logger.LogInformation("Listening for updates");
 
@@ -67,10 +69,16 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         {
             logger.LogInformation("Jetstream connection status updated: {status}", e.State);
 
+            if (e.State == WebSocketState.CloseReceived)
+            {
+                logger.LogError("Jetstream force closed the connection - what the hell man?");
+                return;
+            }
+
             if (e.State != WebSocketState.Open && !_cancellationToken.IsCancellationRequested)
             {
                 logger.LogDebug("Attempting to reconnect to Jetstream");
-                await _atproto!.ConnectAsync(token: _cancellationToken);
+                await _atproto.ConnectAsync(token: _cancellationToken);
             }
         }
         catch (Exception ex)

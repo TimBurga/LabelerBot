@@ -65,8 +65,6 @@ public class AtProtoSessionManager : IAtProtoSessionManager
 
                 _refreshTimer.Interval = session!.ExpiresIn.Subtract(DateTime.Now).Add(TimeSpan.FromSeconds(10)).TotalMilliseconds;
                 _refreshTimer.Start();
-
-                _logger.LogInformation("Got new session {jwt}", session.AccessJwt);
             }
 
             _logger.LogInformation("Session expires at {exp}", _atproto.Session?.ExpiresIn);

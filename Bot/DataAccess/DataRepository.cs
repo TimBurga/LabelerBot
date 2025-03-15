@@ -18,6 +18,7 @@ public interface IDataRepository
     Task UpdateProfile(ProfileViewDetailed? profile);
     Task<bool> SubscriberExists(ATDid did, string? rkey);
     Task<LabelLevel> DeleteSubscriber(ATDid did);
+    Task<Subscriber?> GetSubscriber(ATDid did);
 }
 
 public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILogger<DataRepository> logger) : IDataRepository
@@ -164,5 +165,17 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         await dbContext.SaveChangesAsync();
 
         return existingLevel;
+    }
+
+    public async Task<Subscriber?> GetSubscriber(ATDid did)
+    {
+        var dbContext = await dbContextFactory.CreateDbContextAsync();
+        var sub = await dbContext.Subscribers.SingleOrDefaultAsync(x => x.Did.Equals(did));
+        if (sub == null || string.IsNullOrWhiteSpace(sub.Handle))
+        {
+            return null;
+        }
+
+        return sub;
     }
 }
