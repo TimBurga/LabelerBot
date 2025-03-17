@@ -7,10 +7,10 @@ namespace LabelerBot.Bot.DataAccess;
 
 public interface IDataRepository
 {
-    Task SavePost(ImagePost imagePost);
+    Task SavePosts(IEnumerable<ImagePost> imagePosts);
     Task AddSubscriber(ATDid subscriber, string rkey);
     Task<List<ImagePost>> GetValidPosts(ATDid did);
-    Task<LabelLevel?> GetCurrentLabel(ATDid did);
+    Task<LabelLevel> GetCurrentLabel(ATDid did);
     Task AddLabel(ATDid did, LabelLevel label);
     Task ClearLabels(ATDid did);
     Task<List<Subscriber>> GetActiveSubscribers();
@@ -23,23 +23,23 @@ public interface IDataRepository
 
 public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILogger<DataRepository> logger) : IDataRepository
 {
-    public async Task SavePost(ImagePost imagePost)
+    public async Task SavePosts(IEnumerable<ImagePost> newPosts)
     {
         try
         {
             var context = await dbContextFactory.CreateDbContextAsync();
 
-            var existing = await context.Posts.SingleOrDefaultAsync(x => x.Did.Equals(imagePost.Did) && 
-                                                                         x.Cid.Equals(imagePost.Cid));
-            if (existing != null)
+            var allExistingPosts = await context.Posts.Where(x => newPosts.Select(y => y.Did).Contains(x.Did)).ToListAsync();
+            
+            foreach (var newPost in newPosts.DistinctBy(x => new { x.Cid, x.Did }))
             {
-                return;
+                if (!allExistingPosts.Any(exist => exist.Did.Equals(newPost.Did) && exist.Cid.Equals(newPost.Cid)))
+                {
+                    context.Posts.Add(newPost);
+                }
             }
 
-            context.Posts.Add(imagePost);
             await context.SaveChangesAsync();
-            logger.LogInformation("Saved new post for {did}: {timestamp} Valid: [{imagePost.ValidAlt}]", 
-                imagePost.Did.Handler, imagePost.Timestamp, imagePost.ValidAlt);
         }
         catch (Exception ex)
         {
@@ -74,12 +74,12 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
             .ToListAsync();
     }
 
-    public async Task<LabelLevel?> GetCurrentLabel(ATDid did)
+    public async Task<LabelLevel> GetCurrentLabel(ATDid did)
     {
         var dbContext = await dbContextFactory.CreateDbContextAsync();
         var label = await dbContext.Labels.SingleOrDefaultAsync(x => x.Did.Equals(did));
 
-        return label?.Level;
+        return label?.Level ?? LabelLevel.None;
     }
 
     public async Task AddLabel(ATDid did, LabelLevel level)

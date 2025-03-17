@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Net.WebSockets;
-using System.Timers;
 using FishyFlip;
 using FishyFlip.Events;
 using FishyFlip.Lexicon.App.Bsky.Embed;
@@ -8,18 +5,14 @@ using FishyFlip.Lexicon.App.Bsky.Feed;
 using FishyFlip.Models;
 using LabelerBot.Bot.DataAccess;
 using LabelerBot.Bot.Models;
-using Timer = System.Timers.Timer;
 
 namespace LabelerBot.Bot;
 
-public class LabelerBot(IDataRepository dataRepository, ILabelService labelService, IConfiguration config, ILogger<LabelerBot> logger) : BackgroundService
+public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository dataRepository, ILabelService labelService, IConfiguration config, ILogger<LabelerBot> logger) : BackgroundService
 {
     private readonly ATDid _labelerDid = ATDid.Create(config.GetValue<string>("Labeler:Did")!)!;
     private Dictionary<ATDid, string> _subscribers = [];
-    private ATJetStream? _atproto;
     private CancellationToken _cancellationToken = CancellationToken.None;
-    private readonly Timer _jetstreamRetryTimer = new(5000);
-    private int _retryCount = 0;
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -31,13 +24,8 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
             _subscribers = (await dataRepository.GetActiveSubscribers()).ToDictionary(k => k.Did, v => v.Rkey);
             logger.LogInformation("Initializing with {count} subscribers", _subscribers.Count);
 
-            _atproto = new ATJetStreamBuilder().Build();
-            _atproto.OnRecordReceived += RecordReceivedHandler;
-            _atproto.OnConnectionUpdated += OnConnectionUpdated;
-            await _atproto.ConnectAsync(token: cancellationToken);
-
-            _jetstreamRetryTimer.Elapsed += JetstreamRetryTimerOnElapsed;
-
+            await jetstream.StartAsync(RecordReceivedHandler, cancellationToken);
+            
             //backfill on startup to get anything we missed
             await BackfillAll(cancellationToken);
 
@@ -56,75 +44,8 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         }
         finally
         {
-            if (_atproto != null)
-            {
-                _atproto.OnConnectionUpdated -= OnConnectionUpdated;
-                _atproto.OnRecordReceived -= RecordReceivedHandler;
-                await _atproto.CloseAsync();
-            }
-
-            _jetstreamRetryTimer.Elapsed -= JetstreamRetryTimerOnElapsed; 
-
+            await jetstream.CloseAsync();
             logger.LogInformation("LabelerBot is kill");
-        }
-    }
-
-    private async void JetstreamRetryTimerOnElapsed(object? sender, ElapsedEventArgs e)
-    {
-        _jetstreamRetryTimer.Stop();
-
-        if (_retryCount >= 10)
-        {
-            _jetstreamRetryTimer.Close();
-            logger.LogCritical($"Failed to reconnect to Jetstream after {_retryCount} attempts");
-            Process.GetCurrentProcess().Kill();
-        }
-
-        logger.LogInformation("Attempting to retry reconnection to Jetstream");
-        _retryCount++;
-
-        try
-        {
-            await _atproto.ConnectAsync(token: _cancellationToken);
-            _retryCount = 0;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError("Still failed to reconnect to Jetstream. Waiting to retry...", ex);
-            _jetstreamRetryTimer.Start();
-        }
-    }
-
-    private async void OnConnectionUpdated(object? sender, SubscriptionConnectionStatusEventArgs e)
-    {
-        try
-        {
-            logger.LogInformation("Jetstream connection status updated: {status}", e.State);
-
-            if (e.State == WebSocketState.CloseReceived)
-            {
-                logger.LogError("Jetstream force closed the connection - what the hell man?");
-                return;
-            }
-
-            if (e.State != WebSocketState.Open && !_cancellationToken.IsCancellationRequested)
-            {
-                logger.LogDebug("Attempting to reconnect to Jetstream");
-                try
-                {
-                    await _atproto.ConnectAsync(token: _cancellationToken);
-                    _retryCount = 0;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError("Error attempting to reconnect to Jetstream. Starting the retry timer", ex);
-                    _jetstreamRetryTimer.Start();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error in Jetstream connection updated handler");
         }
     }
 
@@ -148,7 +69,7 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
                             {
                                 return;
                             }
-                            await HandlePost(message.Record.Did!, message.Record.Commit.Cid!, post);
+                            await HandlePost(message.Record.Did!, post);
                             break;
 
                         case Like like:
@@ -186,24 +107,23 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         }
     }
 
-    private async Task HandlePost(ATDid did, string cid, Post post)
+    private async Task HandlePost(ATDid did, Post post)
     {
         if (post.Embed is EmbedImages imgPost)
         {
-            logger.LogInformation("Processing new post with images from {did}", did);
+            logger.LogDebug("Processing new post with images from {did}", did);
 
-            foreach (var image in imgPost.Images)
-            {
-                var newPost = new ImagePost
+            var posts = imgPost.Images
+                .Select(image => new ImagePost
                 {
-                    Cid = cid,
-                    Did =did,
-                    Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow),
+                    Cid = image.ImageValue.Ref?.Link, 
+                    Did = did,
+                    Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow), 
                     ValidAlt = IsValidAlt(image.Alt)
-                };
+                })
+                .ToList();
 
-                await dataRepository.SavePost(newPost);
-            }
+            await dataRepository.SavePosts(posts);
 
             await labelService.AdjustLabel(did);
         }
@@ -268,6 +188,8 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
         var earliestTimeSeen = DateTime.UtcNow;
         var bail = false;
 
+        var backfillPosts = new List<ImagePost>();
+
         while (earliestTimeSeen > DateTime.UtcNow.AddMonths(-1))
         {
             if (bail)
@@ -288,22 +210,19 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
                         continue;
                     }
 
-                    foreach (var image in imgPost.Images)
+                    var newPosts = imgPost.Images.Select(image => new ImagePost
                     {
-                        var newPost = new ImagePost
-                        {
-                            Cid = record.Cid,
-                            Did = did,
-                            Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow),
-                            ValidAlt = IsValidAlt(image.Alt)
-                        };
+                        Cid = image.ImageValue.Ref?.Link,
+                        Did = did,
+                        Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow),
+                        ValidAlt = IsValidAlt(image.Alt)
+                    });
 
-                        await dataRepository.SavePost(newPost);
+                    backfillPosts.AddRange(newPosts);
 
-                        if (post.CreatedAt.GetValueOrDefault(DateTime.UtcNow) < earliestTimeSeen)
-                        {
-                            earliestTimeSeen = post.CreatedAt!.Value;
-                        }
+                    if (post.CreatedAt.GetValueOrDefault(DateTime.UtcNow) < earliestTimeSeen)
+                    {
+                        earliestTimeSeen = post.CreatedAt!.Value;
                     }
                 }
 
@@ -318,6 +237,8 @@ public class LabelerBot(IDataRepository dataRepository, ILabelService labelServi
                 bail = true;
             });
         }
+
+        await dataRepository.SavePosts(backfillPosts);
 
         var result = await atproto.Actor.GetProfileAsync(did, _cancellationToken);
         if (result.IsT1)

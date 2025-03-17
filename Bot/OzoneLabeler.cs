@@ -55,7 +55,7 @@ public class OzoneLabeler(IAtProtoSessionManager sessionManager, IConfiguration 
             var error = result.AsT1;
             logger.LogError(error.Detail!.Message, error.Detail.Error);
         }
-
+        
         return result.IsT0;
     }
 

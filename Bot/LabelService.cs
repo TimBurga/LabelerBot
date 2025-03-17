@@ -14,7 +14,7 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, IPos
 {
     public async Task AdjustLabel(ATDid did)
     {
-        logger.LogInformation("Adjusting labels for {Did}", did);
+        logger.LogDebug("Adjusting labels for {Did}", did);
 
         var posts = await dataRepository.GetValidPosts(did); 
         if (posts.Count == 0)
@@ -24,44 +24,29 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, IPos
 
         var totalPosts = posts.Count;
         var postsWithValidAlt = posts.Count(y => y.ValidAlt);
-        var percentage = postsWithValidAlt / (decimal)totalPosts;
-        var level = GetLabelLevel(percentage * 100);
+        var percentage = (decimal)postsWithValidAlt / (decimal)totalPosts;
+        var newLabel = GetLabel(percentage * 100);
 
-        logger.LogInformation("{did}: {postsWithValidAlt} of {totalPosts} = {percentage} [{newLevel}]", 
-            did.Handler, postsWithValidAlt, totalPosts, Math.Round(percentage, 3), level);
+        logger.LogDebug("{did}: {postsWithValidAlt} of {totalPosts} = {percentage} [{newLevel}]", 
+            did.Handler, postsWithValidAlt, totalPosts, Math.Round(percentage, 3), newLabel);
 
         var currentLabel = await dataRepository.GetCurrentLabel(did);
 
-        if (currentLabel.HasValue)
+        if (newLabel != currentLabel)
         {
-            if (currentLabel.Value != level)
+            if (await labeler.Negate(did, currentLabel))
             {
-                if (await labeler.Negate(did, currentLabel.Value))
-                {
-                    logger.LogInformation("Removed old label {label} for {did}", currentLabel.Value, did);
-                    await dataRepository.ClearLabels(did);
-                }
-
-                if (await labeler.Apply(did, level))
-                {
-                    logger.LogInformation("Added new label {label} for {did}", level, did);
-                    await dataRepository.AddLabel(did, level);
-                    if (level > currentLabel.Value)
-                    {
-                        await poster.PostAchievement(did, level);
-                    }
-                }
+                logger.LogInformation("Removed old label {label} for {did}", currentLabel, did);
+                await dataRepository.ClearLabels(did);
             }
-        }
-        else
-        {
-            if (level > LabelLevel.None)
+
+            if (newLabel != LabelLevel.None && await labeler.Apply(did, newLabel))
             {
-                if (await labeler.Apply(did, level))
+                logger.LogInformation("Added new label {label} for {did}", newLabel, did);
+                await dataRepository.AddLabel(did, newLabel);
+                if (newLabel > currentLabel)
                 {
-                    logger.LogInformation("Added new label {label} for {did}", level, did);
-                    await dataRepository.AddLabel(did, level);
-                    await poster.PostAchievement(did, level);
+                    await poster.PostAchievement(did, newLabel);
                 }
             }
         }
@@ -83,7 +68,7 @@ public class LabelService(IDataRepository dataRepository, ILabeler labeler, IPos
         return await labeler.Negate(did, currentLabel);
     }
 
-    private static LabelLevel GetLabelLevel(decimal percentage)
+    private static LabelLevel GetLabel(decimal percentage)
     {
         return percentage switch
         {

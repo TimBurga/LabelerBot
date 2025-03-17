@@ -18,6 +18,7 @@ builder.Services.AddTransient<ILabeler, OzoneLabeler>();
 builder.Services.AddTransient<IPostService, PostService>();
 
 builder.Services.AddSingleton<IAtProtoSessionManager, AtProtoSessionManager>();
+builder.Services.AddSingleton<IJetstreamSessionManager, JetstreamSessionManager>();
 
 var host = builder.Build();
 host.Run();
