@@ -24,8 +24,8 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
             _subscribers = (await dataRepository.GetActiveSubscribers()).ToDictionary(k => k.Did, v => v.Rkey);
             logger.LogInformation("Initializing with {count} subscribers", _subscribers.Count);
 
-            await jetstream.StartAsync(RecordReceivedHandler, cancellationToken);
-            
+            await jetstream.OpenAsync(RecordReceivedHandler, cancellationToken);
+
             //backfill on startup to get anything we missed
             await BackfillAll(cancellationToken);
 
@@ -116,7 +116,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
             var posts = imgPost.Images
                 .Select(image => new ImagePost
                 {
-                    Cid = image.ImageValue.Ref?.Link, 
+                    Cid = image.ImageValue.Ref!.Link!, 
                     Did = did,
                     Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow), 
                     ValidAlt = IsValidAlt(image.Alt)
@@ -189,6 +189,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
         string? lastCursor;
         var earliestTimeSeen = DateTime.UtcNow;
         var bail = false;
+        var err = false;
 
         var backfillPosts = new List<ImagePost>();
 
@@ -214,7 +215,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
                     var newPosts = imgPost.Images.Select(image => new ImagePost
                     {
-                        Cid = image.ImageValue.Ref?.Link,
+                        Cid = image.ImageValue.Ref!.Link!,
                         Did = did,
                         Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow),
                         ValidAlt = IsValidAlt(image.Alt)
@@ -233,11 +234,21 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                 bail = cursor == null && lastCursor != null;
             }, async error =>
             {
-                logger.LogError(error.Detail?.Message, error.Detail?.Error);
-                //await dataRepository.DeactivateSubscriber(did);
-                //_subscribers.Remove(did);
-                bail = true;
+                logger.LogError("Error backfilling: [{status}] {message}|{error}", error.StatusCode, error.Detail?.Message, error.Detail?.Error);
+                if (error.StatusCode == 404)
+                {
+                    await dataRepository.DeactivateSubscriber(did);
+                    _subscribers.Remove(did);
+                    logger.LogWarning("Subscriber {did} not found - deactivating", did);
+                }
+
+                err = true;
             });
+        }
+
+        if (err)
+        {
+            return;
         }
 
         await dataRepository.SavePosts(backfillPosts);

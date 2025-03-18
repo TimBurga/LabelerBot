@@ -9,7 +9,7 @@ namespace LabelerBot.Bot;
 
 public interface IJetstreamSessionManager
 {
-    Task StartAsync(EventHandler<JetStreamATWebSocketRecordEventArgs> recordReceivedHandler,
+    Task OpenAsync(EventHandler<JetStreamATWebSocketRecordEventArgs> recordReceivedHandler,
         CancellationToken cancellationToken);
     Task CloseAsync();
 }
@@ -18,12 +18,12 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
 {
     private ATJetStream? _atproto;
     private CancellationToken _cancellationToken = CancellationToken.None;
-    private EventHandler<JetStreamATWebSocketRecordEventArgs> _recordReceivedHandler;
+    private EventHandler<JetStreamATWebSocketRecordEventArgs>? _recordReceivedHandler;
     private readonly Timer _jetstreamRetryTimer = new(5000);
     private int _retryCount;
 
 
-    public async Task StartAsync(EventHandler<JetStreamATWebSocketRecordEventArgs> recordReceivedHandler,
+    public async Task OpenAsync(EventHandler<JetStreamATWebSocketRecordEventArgs> recordReceivedHandler,
         CancellationToken cancellationToken)
     {
         _cancellationToken = cancellationToken;
@@ -67,12 +67,12 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
                 logger.LogDebug("Attempting to reconnect to Jetstream");
                 try
                 {
-                    await _atproto.ConnectAsync(token: _cancellationToken);
+                    await _atproto!.ConnectAsync(token: _cancellationToken);
                     _retryCount = 0;
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError("Error attempting to reconnect to Jetstream. Starting the retry timer", ex);
+                    logger.LogError(ex, "Error attempting to reconnect to Jetstream. Starting the retry timer");
                     _jetstreamRetryTimer.Start();
                 }
             }
@@ -99,12 +99,12 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
 
         try
         {
-            await _atproto.ConnectAsync(token: _cancellationToken);
+            await _atproto!.ConnectAsync(token: _cancellationToken);
             _retryCount = 0;
         }
         catch (Exception ex)
         {
-            logger.LogError("Still failed to reconnect to Jetstream. Waiting to retry...", ex);
+            logger.LogError(ex, "Still failed to reconnect to Jetstream. Waiting to retry...");
             _jetstreamRetryTimer.Start();
         }
     }
