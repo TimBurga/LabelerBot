@@ -111,7 +111,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
     {
         if (post.Embed is EmbedImages imgPost)
         {
-            logger.LogDebug("Processing new post with images from {did}", did);
+            logger.LogInformation("Handling new post from {did}", did);
 
             var posts = imgPost.Images
                 .Select(image => new ImagePost
@@ -131,6 +131,8 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
     private async Task HandleLike(ATDid did, string rkey)
     {
+        logger.LogInformation("Handling new like from {did} - first removing any existing data before backfilling.", did);
+
         await HandleUnlike(did);
         await dataRepository.AddSubscriber(did, rkey);
 

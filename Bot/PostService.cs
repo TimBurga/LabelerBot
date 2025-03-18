@@ -12,11 +12,14 @@ public interface IPostService
 
 public class PostService(IDataRepository data, IAtProtoSessionManager sessionManager, IConfiguration config, ILogger<PostService> logger) : IPostService
 {
+    private readonly Dictionary<ATDid,DateTime> _lastPost = new();
+
     public async Task PostAchievement(ATDid did, LabelLevel level)
     {
         var sub = await data.GetSubscriber(did);
-        if (sub == null)
+        if (sub == null || IsDupe(did))
         {
+            logger.LogInformation("Skipping post for {did}", did);
             return;
         }
 
@@ -40,6 +43,18 @@ public class PostService(IDataRepository data, IAtProtoSessionManager sessionMan
             logger.LogError("Failed to post achievement record: {error}", error.Detail?.Error);
         }
 
+        _lastPost[did] = DateTime.Now;
+
         logger.LogInformation("New post: {text}", text);
+    }
+
+    private bool IsDupe(ATDid did)
+    {
+        if (_lastPost.TryGetValue(did, out var dt))
+        {
+            return DateTime.Now < dt.AddMinutes(5);
+        }
+
+        return false;
     }
 }
