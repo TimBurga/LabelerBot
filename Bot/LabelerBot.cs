@@ -195,7 +195,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
         while (earliestTimeSeen > DateTime.UtcNow.AddMonths(-1))
         {
-            if (bail)
+            if (bail || err)
             {
                 break;
             }
