@@ -235,11 +235,16 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
             }, async error =>
             {
                 logger.LogError("Error backfilling: [{status}] {message}|{error}", error.StatusCode, error.Detail?.Message, error.Detail?.Error);
-                if (error.StatusCode == 404)
+                if (error.StatusCode is 400 or 404)
                 {
                     await dataRepository.DeactivateSubscriber(did);
                     _subscribers.Remove(did);
                     logger.LogWarning("Subscriber {did} not found - deactivating", did);
+                }
+                if (error.StatusCode == 429)
+                {
+                    logger.LogWarning("Rate limited - waiting 30 seconds");
+                    await Task.Delay(30000, _cancellationToken);
                 }
 
                 err = true;
