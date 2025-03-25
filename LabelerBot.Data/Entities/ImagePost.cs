@@ -10,4 +10,5 @@ public class ImagePost
     public string Cid { get; set; }
     public bool ValidAlt { get; set; }
     public DateTime Timestamp { get; set; }
+    public Subscriber Subscriber { get; set; }
 }

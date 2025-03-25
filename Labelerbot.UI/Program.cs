@@ -1,26 +1,24 @@
-using Labelerbot.UI.Client.Pages;
-using Labelerbot.UI.Components;
+using LabelerBot.Data.Entities;
+using LabelerBot.UI.Components;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents()
-    .AddInteractiveWebAssemblyComponents();
+    .AddInteractiveServerComponents();
 
-//builder.Services.AddD.AddDbContextFactory<DataContext>(options =>
-//{
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
-//});
+builder.Services.AddDbContextFactory<DataContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
+});
+
+builder.Services.AddQuickGridEntityFrameworkAdapter();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseWebAssemblyDebugging();
-}
-else
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
@@ -34,8 +32,6 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(Labelerbot.UI.Client._Imports).Assembly);
+    .AddInteractiveServerRenderMode();
 
 app.Run();

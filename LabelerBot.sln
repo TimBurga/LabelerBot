@@ -5,11 +5,9 @@ VisualStudioVersion = 17.9.34902.65
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LabelerBot.Service", "LabelerBot.Service\LabelerBot.Service.csproj", "{6F804AA9-6EA6-4A0F-9DBE-8E5AC29DFF6E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Labelerbot.UI", "Labelerbot.UI\Labelerbot.UI.csproj", "{D970C6E5-6C35-4A41-9064-BDE57D713299}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Labelerbot.UI.Client", "Labelerbot.UI.Client\Labelerbot.UI.Client.csproj", "{22D9482F-22DC-4D3D-B269-8ACCC9934CE4}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LabelerBot.Data", "LabelerBot.Data\LabelerBot.Data.csproj", "{047D7789-562E-48A1-BA0A-5AFCB49B7A5A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LabelerBot.UI", "LabelerBot.UI\LabelerBot.UI.csproj", "{B97AE0DD-4650-4696-8FC9-4347254A8042}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,18 +19,14 @@ Global
 		{6F804AA9-6EA6-4A0F-9DBE-8E5AC29DFF6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6F804AA9-6EA6-4A0F-9DBE-8E5AC29DFF6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6F804AA9-6EA6-4A0F-9DBE-8E5AC29DFF6E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D970C6E5-6C35-4A41-9064-BDE57D713299}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D970C6E5-6C35-4A41-9064-BDE57D713299}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D970C6E5-6C35-4A41-9064-BDE57D713299}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D970C6E5-6C35-4A41-9064-BDE57D713299}.Release|Any CPU.Build.0 = Release|Any CPU
-		{22D9482F-22DC-4D3D-B269-8ACCC9934CE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{22D9482F-22DC-4D3D-B269-8ACCC9934CE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{22D9482F-22DC-4D3D-B269-8ACCC9934CE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{22D9482F-22DC-4D3D-B269-8ACCC9934CE4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{047D7789-562E-48A1-BA0A-5AFCB49B7A5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{047D7789-562E-48A1-BA0A-5AFCB49B7A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{047D7789-562E-48A1-BA0A-5AFCB49B7A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{047D7789-562E-48A1-BA0A-5AFCB49B7A5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B97AE0DD-4650-4696-8FC9-4347254A8042}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B97AE0DD-4650-4696-8FC9-4347254A8042}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B97AE0DD-4650-4696-8FC9-4347254A8042}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B97AE0DD-4650-4696-8FC9-4347254A8042}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

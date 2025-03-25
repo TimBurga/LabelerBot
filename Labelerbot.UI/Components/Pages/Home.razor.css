@@ -1,0 +1,10 @@
+﻿::deep thead .handle-display {
+    width: 15rem;
+}
+
+::deep tbody .handle-display {
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 0;
+    text-overflow: ellipsis;
+}

@@ -50,13 +50,18 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             entity.Property(x => x.Rkey)
                 .HasColumnName("RKey")
                 .HasMaxLength(100);
+
+            entity.HasMany<ImagePost>()
+                .WithOne(x => x.Subscriber)
+                .HasForeignKey("FK_ImagePost_Subscriber")
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Label>(entity =>
         {
             entity.ToTable("Label");
 
-            entity.HasKey(x => new {x.Did, x.Level});
+            entity.HasKey(x => x.Did);
 
             entity.Property(x => x.Did)
                 .HasMaxLength(100)
@@ -69,6 +74,12 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
                 .HasConversion(
                     save => save.ToString(),
                     load => (LabelLevel)Enum.Parse(typeof(LabelLevel), load));
+
+
+            entity.HasOne<Label>()
+                .WithMany(x => x.Subscribers)
+                .HasForeignKey("FK_Label_Subscriber")
+                .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }

@@ -2,8 +2,6 @@
 
 namespace LabelerBot.Data.Entities;
 
-#nullable disable
-
 public class Subscriber
 {
     public ATDid Did { get; set; }
@@ -11,4 +9,6 @@ public class Subscriber
     public bool Active { get; set; }
     public string Handle { get; set; }
     public string Rkey { get; set; }
+    public ICollection<ImagePost> Posts { get; set; } = new List<ImagePost>();
+    public Label? Label { get; set; }
 }

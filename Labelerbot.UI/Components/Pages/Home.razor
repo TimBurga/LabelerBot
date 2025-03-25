@@ -1,7 +1,50 @@
 ﻿@page "/"
+@using LabelerBot.Data
+@using LabelerBot.Data.Entities
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.EntityFrameworkCore
+@implements IAsyncDisposable
 
-<PageTitle>Home</PageTitle>
+@inject IDbContextFactory<DataContext> DbFactory
 
-<h1>Hello, world!</h1>
+<PageTitle>LabelerBot Subscribers</PageTitle>
 
-Welcome to your new app.
+<div>
+    <span>Subscribers: </span>
+    <h2>@_subscribers.Count()</h2>
+</div>
+
+<div class="grid">
+    <QuickGrid Items="_subscribers" Virtualize="false" Class="table table-striped table-hover">
+        <PropertyColumn Property="@(sub => sub.Handle)" Title="Handle" Sortable="true" Class="handle-display" />
+        <PropertyColumn Property="@(sub => sub.Did)" Title="DID" Sortable="true" />
+        <PropertyColumn Property="@(sub => sub.Timestamp)" Title="Subscribed" Sortable="true" InitialSortDirection="SortDirection.Descending" IsDefaultSortColumn="true" />
+        <PropertyColumn Property="@(sub => sub.Active)" Title="Active" Sortable="true" />
+        <PropertyColumn Property="@(sub => sub.Posts)" Title="Posts" Sortable="true" />
+        <PropertyColumn Property="@(sub => sub.Score)" Title="Score" Sortable="true" />
+        @* <PropertyColumn Property="@(sub => sub.Label)" Title="LabelLevel" Sortable="true" /> *@
+    </QuickGrid>
+</div>
+
+@code
+{
+    private static DataContext _context = default!;
+    private IQueryable<HomeViewModel> _subscribers = default!;
+
+    protected override void OnInitialized()
+    {
+        _context = DbFactory.CreateDbContext();
+        _subscribers = _context.Subscribers.Include(x => x.Posts).Select(x => new HomeViewModel
+        {
+            Handle = x.Handle,
+            Did = x.Did.Handler,
+            Timestamp = x.Timestamp,
+            Active = x.Active ? "Yes" : "No",
+            Posts = x.Posts.Count,
+            Score = x.Posts.Count > 0 ? Math.Round((decimal)x.Posts.Count(p => p.ValidAlt) / (decimal)x.Posts.Count, 2) : 0,
+            Label = x.Label.ToString()
+        });
+    }
+
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+}
