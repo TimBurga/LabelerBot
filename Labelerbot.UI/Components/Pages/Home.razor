@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using FishyFlip.Models
 @using LabelerBot.Data
 @using LabelerBot.Data.Entities
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -16,17 +17,17 @@
 
 <div class="grid">
     <QuickGrid Items="_subscribers" Virtualize="false" Class="table table-striped table-hover">
-        <PropertyColumn Property="@(sub => sub.Handle)" Title="Handle" Sortable="true" Class="handle-display" />
-        <PropertyColumn Property="@(sub => sub.Did)" Title="DID" Sortable="true" />
+        <PropertyColumn Property="@(sub => sub.Handle)" Title="Handle" Class="handle-display" />
+        <PropertyColumn Property="@(sub => sub.Did)" Title="DID"  />
         <PropertyColumn Property="@(sub => sub.Timestamp)" Title="Subscribed" Sortable="true" InitialSortDirection="SortDirection.Descending" IsDefaultSortColumn="true" />
-        <PropertyColumn Property="@(sub => sub.Active)" Title="Active" Sortable="true" />
-        <PropertyColumn Property="@(sub => sub.Posts)" Title="Posts" Sortable="true" />
-        <PropertyColumn Property="@(sub => sub.Score)" Title="Score" Sortable="true" />
-        @* <PropertyColumn Property="@(sub => sub.Label)" Title="LabelLevel" Sortable="true" /> *@
+        <PropertyColumn Property="@(sub => sub.Active)" Title="Active" />
+        <PropertyColumn Property="@(sub => sub.Posts)" Title="Posts" />
+        <PropertyColumn Property="@(sub => sub.Score)" Title="Score %" />
+        <PropertyColumn Property="@(sub => sub.Label)" Title="Label" />
     </QuickGrid>
 </div>
 
-@code
+@code   
 {
     private static DataContext _context = default!;
     private IQueryable<HomeViewModel> _subscribers = default!;
@@ -34,16 +35,19 @@
     protected override void OnInitialized()
     {
         _context = DbFactory.CreateDbContext();
-        _subscribers = _context.Subscribers.Include(x => x.Posts).Select(x => new HomeViewModel
-        {
-            Handle = x.Handle,
-            Did = x.Did.Handler,
-            Timestamp = x.Timestamp,
-            Active = x.Active ? "Yes" : "No",
-            Posts = x.Posts.Count,
-            Score = x.Posts.Count > 0 ? Math.Round((decimal)x.Posts.Count(p => p.ValidAlt) / (decimal)x.Posts.Count, 2) : 0,
-            Label = x.Label.ToString()
-        });
+        var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
+        _subscribers = _context.Subscribers
+            .Include(x => x.Posts)
+            .Select(x => new HomeViewModel
+            {
+                Handle = x.Handle,
+                Did = x.Did.Handler,
+                Timestamp = x.Timestamp,
+                Active = x.Active ? "Yes" : "No",
+                Posts = x.Posts.Count(y => y.Timestamp >= oneMonthAgo),
+                Score = x.Posts.Count(y => y.Timestamp >= oneMonthAgo) > 0 ? (int)(Math.Round((decimal)x.Posts.Count(p => p.ValidAlt && p.Timestamp >= oneMonthAgo) / (decimal)x.Posts.Count(y => y.Timestamp >= oneMonthAgo), 2) * 100) : 0,
+                Label = x.Label == null ? string.Empty : x.Label.Level.ToString()
+            });
     }
 
     public async ValueTask DisposeAsync() => await _context.DisposeAsync();

@@ -27,6 +27,8 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
 
             entity.Property(x => x.Cid)
                 .HasMaxLength(100);
+
+            entity.HasOne<Subscriber>();
         });
 
         modelBuilder.Entity<Subscriber>(entity =>
@@ -41,7 +43,8 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
                     save => save.ToString(),
                     load => ATDid.Create(load)!);
 
-            entity.Property(x => x.Active).HasDefaultValue(true);
+            entity.Property(x => x.Active)
+                .HasDefaultValue(true);
 
             entity.Property(x => x.Handle)
                 .IsUnicode()
@@ -50,11 +53,6 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             entity.Property(x => x.Rkey)
                 .HasColumnName("RKey")
                 .HasMaxLength(100);
-
-            entity.HasMany<ImagePost>()
-                .WithOne(x => x.Subscriber)
-                .HasForeignKey("FK_ImagePost_Subscriber")
-                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Label>(entity =>
@@ -75,11 +73,16 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
                     save => save.ToString(),
                     load => (LabelLevel)Enum.Parse(typeof(LabelLevel), load));
 
+            entity.HasOne(d => d.SubscriberNavigation)
+                .WithOne(p => p.Label)
+                .HasForeignKey<Label>(d => d.Did)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Label_Subscriber");
 
-            entity.HasOne<Label>()
-                .WithMany(x => x.Subscribers)
-                .HasForeignKey("FK_Label_Subscriber")
-                .OnDelete(DeleteBehavior.NoAction);
+            //entity.HasOne<Label>()
+            //    .WithMany(x => x.Subscribers)
+            //    .HasForeignKey("FK_Label_Subscriber")
+            //    .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }

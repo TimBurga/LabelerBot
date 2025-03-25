@@ -9,6 +9,6 @@ public class Subscriber
     public bool Active { get; set; }
     public string Handle { get; set; }
     public string Rkey { get; set; }
-    public ICollection<ImagePost> Posts { get; set; } = new List<ImagePost>();
-    public Label? Label { get; set; }
+    public virtual ICollection<ImagePost> Posts { get; set; } = new List<ImagePost>();
+    public virtual Label? Label { get; set; }
 }
