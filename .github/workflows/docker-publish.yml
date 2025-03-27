@@ -30,6 +30,13 @@ jobs:
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
+    strategy:
+      matrix:
+        include:
+          - dockerfile: LabelerBot.Service/Dockerfile
+            image: ghcr.io/timburga/labelerbot
+          - dockerfile: LabelerBot.UI/Dockerfile
+            image: ghcr.io/timburga/labelerbot-ui
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -60,35 +67,25 @@ jobs:
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
-      # - name: Extract Docker metadata
-      #   id: meta
-      #   uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
-      #   with:
-      #     images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
+        with:
+          images: ${{ matrix.image }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
-      # - name: Build and push Docker image
-      #   id: build-and-push
-      #   uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
-      #   with:
-      #     context: .
-      #     file: ./${{ matrix.dockerfile }}
-      #     push: ${{ github.event_name != 'pull_request' }}
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: ${{ steps.meta.outputs.labels }}
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
-
-      - name: Build and push LabelerBot.Service
-        run: |
-          docker build -t ghcr.io/timburga/labelerbot-service:latest ./LabelerBot.Service
-          docker push ghcr.io/timburga/labelerbot:latest
-
-      - name: Build and push LabelerBot.UI
-        run: |
-          docker build -t ghcr.io/timburga/labelerbot-ui:latest ./LabelerBot.UI
-          docker push ghcr.io/timburga/labelerbot-ui:latest
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+        with:
+          context: .
+          file: ./${{ matrix.dockerfile }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
