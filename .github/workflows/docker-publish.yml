@@ -82,8 +82,8 @@ jobs:
 
       - name: Build and push LabelerBot.Service
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/labelerbot-service:latest ./LabelerBot.Service
-          docker push ghcr.io/${{ github.repository_owner }}/labelerbot-service:latest
+          docker build -t ghcr.io/timburga/labelerbot-service:latest ./LabelerBot.Service
+          docker push ghcr.io/timburga/labelerbot:latest
 
       - name: Build and push LabelerBot.UI
         run: |
