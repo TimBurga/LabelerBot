@@ -1,8 +1,22 @@
 using LabelerBot.Data.Entities;
 using LabelerBot.UI.Components;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddMicrosoftIdentityWebAppAuthentication(builder.Configuration);
+
+builder.Services.AddControllersWithViews(options =>
+{
+    var policy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.Filters.Add(new AuthorizeFilter(policy));
+}).AddMicrosoftIdentityUI();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -29,6 +43,7 @@ app.UseHttpsRedirection();
 
 
 app.UseAntiforgery();
+app.MapControllers();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
