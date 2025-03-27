@@ -12,11 +12,11 @@ COPY ["./LabelerBot.Data/LabelerBot.Data.csproj", "LabelerBot.Data/"]
 RUN dotnet restore "./LabelerBot.UI/LabelerBot.UI.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "./LabelerBot.UI.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./LabelerBot.UI/LabelerBot.UI.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./LabelerBot.UI.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./LabelerBot.UI/LabelerBot.UI.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

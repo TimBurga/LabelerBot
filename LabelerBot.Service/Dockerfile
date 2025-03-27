@@ -7,14 +7,14 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["./LabelerBot.Service/LabelerBot.Service.csproj", "LabelerBot.Service/"]
 COPY ["./LabelerBot.Data/LabelerBot.Data.csproj", "LabelerBot.Data/"]
-RUN dotnet restore "./LabelerBot.Service.csproj"
+RUN dotnet restore "./LabelerBot.Service/LabelerBot.Service.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "./LabelerBot.Service.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./LabelerBot.Service/LabelerBot.Service.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./LabelerBot.Service.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./LabelerBot.Service/LabelerBot.Service.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
