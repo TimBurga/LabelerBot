@@ -73,11 +73,10 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                             break;
 
                         case Like like:
-                            if (like.Subject?.Uri.Did == null || !like.Subject.Uri.Did.Equals(_labelerDid))
+                            if (like.Subject?.Uri.Did?.Handler != _labelerDid.Handler || like.Subject?.Uri.Rkey != "self")
                             {
                                 return;
                             }
-
                             await HandleLike(message.Record.Did!, message.Record.Commit.RKey!);
                             break;
                     }
