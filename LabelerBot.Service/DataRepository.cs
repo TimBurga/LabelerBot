@@ -29,9 +29,10 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         try
         {
             var context = await dbContextFactory.CreateDbContextAsync();
+            var did = newPosts.First().Did;
 
-            var allExistingPosts = await context.Posts.Where(x => newPosts.Select(y => y.Did).Contains(x.Did)).ToListAsync();
-            
+            var allExistingPosts = await context.Posts.Where(x => x.Did == did).ToListAsync();
+
             foreach (var newPost in newPosts.DistinctBy(x => new { x.Cid, x.Did }))
             {
                 if (!allExistingPosts.Any(exist => exist.Did.Equals(newPost.Did) && exist.Cid.Equals(newPost.Cid)))
@@ -41,6 +42,10 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
             }
 
             await context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            logger.LogWarning(ex.Message, ex);
         }
         catch (Exception ex)
         {

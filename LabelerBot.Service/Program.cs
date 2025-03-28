@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddHostedService<LabelerBot.LabelerBot>();
+builder.Services.AddHostedService<LabelerBot.Service.LabelerBot>();
 builder.Services.AddDbContextFactory<DataContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));

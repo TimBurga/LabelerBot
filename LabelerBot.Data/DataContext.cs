@@ -28,7 +28,10 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             entity.Property(x => x.Cid)
                 .HasMaxLength(100);
 
-            entity.HasOne<Subscriber>();
+            entity.HasOne(x => x.Subscriber)
+                .WithMany(x => x.Posts)
+                .HasForeignKey(x => x.Did)
+                .HasConstraintName("FK_ImagePost_Subscriber");
         });
 
         modelBuilder.Entity<Subscriber>(entity =>

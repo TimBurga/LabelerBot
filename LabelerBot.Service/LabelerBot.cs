@@ -6,12 +6,12 @@ using FishyFlip.Models;
 using LabelerBot.Data;
 using LabelerBot.Data.Entities;
 
-namespace LabelerBot;
+namespace LabelerBot.Service;
 
 public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository dataRepository, ILabelService labelService, IConfiguration config, ILogger<LabelerBot> logger) : BackgroundService
 {
     private readonly ATDid _labelerDid = ATDid.Create(config.GetValue<string>("Labeler:Did")!)!;
-    private Dictionary<ATDid, string> _subscribers = [];
+    private Dictionary<ATDid, string?> _subscribers = [];
     private CancellationToken _cancellationToken = CancellationToken.None;
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
