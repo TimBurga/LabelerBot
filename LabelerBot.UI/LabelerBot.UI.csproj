@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LabelerBot.Data\LabelerBot.Data.csproj" />
+    <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

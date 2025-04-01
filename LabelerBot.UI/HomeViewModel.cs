@@ -2,11 +2,11 @@
 
 public class HomeViewModel
 {
-    public string Did { get; set; }
-    public DateTimeOffset Timestamp { get; set; }
-    public string Active { get; set; }
-    public string Handle { get; set; }
-    public int Posts { get; set; }
-    public int Score { get; set; }
-    public string Label { get; set; }
+    public required string Did { get; set; }
+    public required DateTimeOffset Timestamp { get; set; }
+    public required string Active { get; set; }
+    public required string Handle { get; set; }
+    public required int Posts { get; set; }
+    public required int Score { get; set; }
+    public required string Label { get; set; }
 }

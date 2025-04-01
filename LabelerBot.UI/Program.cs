@@ -8,6 +8,8 @@ using Microsoft.Identity.Web.UI;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 builder.Services.AddMicrosoftIdentityWebAppAuthentication(builder.Configuration);
 
 builder.Services.AddControllersWithViews(options =>
@@ -41,6 +43,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.MapDefaultEndpoints();
 
 app.UseAntiforgery();
 app.MapControllers();

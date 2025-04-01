@@ -43,7 +43,7 @@
             .Include(x => x.Posts)
             .Select(x => new HomeViewModel
             {
-                Handle = x.Handle,
+                Handle = x.Handle!,
                 Did = x.Did.Handler,
                 Timestamp = x.Timestamp,
                 Active = x.Active ? "Yes" : "No",
