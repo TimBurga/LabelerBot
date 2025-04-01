@@ -10,6 +10,19 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+
+if (builder.Environment.IsProduction())
+{
+    IConfigurationSection azureAdSection = builder.Configuration.GetSection("AzureAd");
+
+    azureAdSection.GetSection("Instance").Value = "https://login.microsoftonline.com/";
+    azureAdSection.GetSection("Domain").Value = Environment.GetEnvironmentVariable("AzureAd__Domain");
+    azureAdSection.GetSection("TenantId").Value = Environment.GetEnvironmentVariable("AzureAd__TenantId");
+    azureAdSection.GetSection("ClientId").Value = Environment.GetEnvironmentVariable("AzureAd__ClientId");
+    azureAdSection.GetSection("CallbackPath").Value = Environment.GetEnvironmentVariable("AzureAd__CallbackPath");
+    azureAdSection.GetSection("SignedOutCallbackPath").Value = Environment.GetEnvironmentVariable("AzureAd__SignedOutCallbackPath");
+}
+
 builder.Services.AddMicrosoftIdentityWebAppAuthentication(builder.Configuration);
 
 builder.Services.AddControllersWithViews(options =>
