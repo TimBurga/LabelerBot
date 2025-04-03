@@ -11,8 +11,6 @@ builder.Services.AddDbContextFactory<DataContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
 });
 
-builder.AddServiceDefaults();
-
 builder.Services.AddLogging(x => x.AddJsonConsole(c => c.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] "));
 
 builder.Services.AddTransient<IDataRepository, DataRepository>();
