@@ -84,7 +84,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
                 case ATWebSocketCommitType.Delete:
 
-                    if (_subscribers.ContainsKey(message.Record.Did!))
+                    if (!_subscribers.ContainsKey(message.Record.Did!))
                     {
                         return;
                     }
