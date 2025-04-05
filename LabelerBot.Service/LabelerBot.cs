@@ -94,6 +94,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                     switch (commit.Collection)
                     {
                         case Constants.LikesCollectionName:
+                            // Only handle profile unlikes (rkey stored when liked)
                             if (_subscribers[message.Record.Did!] == commit.RKey)
                             {
                                 await HandleUnlike(message.Record.Did!);
@@ -102,9 +103,6 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                         case Constants.PostsCollectionName:
                             await HandleUnpost(message.Record.Did!, commit.RKey!);
                             break;
-                        default:
-                            throw new NotImplementedException($"Unhandled delete operation for collection: {commit.Collection}");
-
                     }
                     break;
             }
