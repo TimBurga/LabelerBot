@@ -28,6 +28,10 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             entity.Property(x => x.Cid)
                 .HasMaxLength(100);
 
+            entity.Property(x => x.Rkey)
+                .HasColumnName("RKey")
+                .HasMaxLength(100);
+
             entity.HasOne(x => x.Subscriber)
                 .WithMany(x => x.Posts)
                 .HasForeignKey(x => x.Did)

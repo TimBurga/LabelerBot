@@ -1,4 +1,3 @@
-using System.Reflection;
 using FishyFlip;
 using FishyFlip.Events;
 using FishyFlip.Lexicon.App.Bsky.Embed;
@@ -70,7 +69,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                             {
                                 return;
                             }
-                            await HandlePost(message.Record.Did!, post);
+                            await HandlePost(message.Record.Did!, message.Record.Commit.RKey!, post);
                             break;
 
                         case Like like:
@@ -85,18 +84,27 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
                 case ATWebSocketCommitType.Delete:
 
+                    if (_subscribers.ContainsKey(message.Record.Did!))
+                    {
+                        return;
+                    }
+
                     var commit = message.Record.Commit;
 
-                    if (commit.Collection == Constants.LikesCollectionName)
+                    switch (commit.Collection)
                     {
-                        if (_subscribers.ContainsKey(message.Record.Did!))
-                        {
+                        case Constants.LikesCollectionName:
                             if (_subscribers[message.Record.Did!] == commit.RKey)
                             {
                                 await HandleUnlike(message.Record.Did!);
-
                             }
-                        }
+                            break;
+                        case Constants.PostsCollectionName:
+                            await HandleUnpost(message.Record.Did!, commit.RKey!);
+                            break;
+                        default:
+                            throw new NotImplementedException($"Unhandled delete operation for collection: {commit.Collection}");
+
                     }
                     break;
             }
@@ -107,7 +115,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
         }
     }
 
-    private async Task HandlePost(ATDid did, Post post)
+    private async Task HandlePost(ATDid did, string rkey, Post post)
     {
         if (post.Embed is EmbedImages imgPost)
         {
@@ -116,9 +124,10 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
             var posts = imgPost.Images
                 .Select(image => new ImagePost
                 {
-                    Cid = image.ImageValue.Ref!.Link!, 
+                    Cid = image.ImageValue.Ref!.Link!,
                     Did = did,
-                    Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow), 
+                    Rkey = rkey,
+                    Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow),
                     ValidAlt = IsValidAlt(image.Alt)
                 })
                 .ToList();
@@ -127,6 +136,13 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
             await labelService.AdjustLabel(did);
         }
+    }
+
+    private async Task HandleUnpost(ATDid did, string rkey)
+    {
+        logger.LogInformation("Handling removed post from {did}", did);
+        await dataRepository.RemovePosts(did, rkey);
+        await labelService.AdjustLabel(did);
     }
 
     private async Task HandleLike(ATDid did, string rkey)
@@ -163,7 +179,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
         logger.LogInformation("Beginning backfill for all subscribers");
 
-        foreach(var subscriber in _subscribers.Keys.OrderBy(x => x.Handler))
+        foreach (var subscriber in _subscribers.Keys.OrderBy(x => x.Handler))
         {
             if (stoppingToken.IsCancellationRequested)
             {
@@ -200,7 +216,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                 break;
             }
 
-            var records = await atproto.Repo.ListRecordsAsync(did, Constants.PostsCollectionName, 50, cursor, cancellationToken:_cancellationToken);
+            var records = await atproto.Repo.ListRecordsAsync(did, Constants.PostsCollectionName, 50, cursor, cancellationToken: _cancellationToken);
 
             await records.SwitchAsync(success =>
             {
@@ -272,7 +288,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
         await dataRepository.UpdateProfile(profile);
         await labelService.AdjustLabel(did);
     }
-    
+
     private static bool IsHandleable(ATWebSocketRecord record)
     {
         if (record.Kind != ATWebSocketEvent.Commit)

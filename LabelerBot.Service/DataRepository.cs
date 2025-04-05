@@ -20,6 +20,7 @@ public interface IDataRepository
     Task<bool> SubscriberExists(ATDid did, string? rkey);
     Task<LabelLevel> DeleteSubscriber(ATDid did);
     Task<Subscriber?> GetSubscriber(ATDid did);
+    Task RemovePosts(ATDid did, string rkey);
 }
 
 public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILogger<DataRepository> logger) : IDataRepository
@@ -51,6 +52,14 @@ public class DataRepository(IDbContextFactory<DataContext> dbContextFactory, ILo
         {
             logger.LogError(ex.Message, ex);
         }
+    }
+
+    public async Task RemovePosts(ATDid did, string rkey)
+    {
+        var dbContext = await dbContextFactory.CreateDbContextAsync();
+        var existing = dbContext.Posts.Where(x => x.Did.Equals(did) && x.Rkey == rkey);
+        dbContext.Posts.RemoveRange(existing);
+        await dbContext.SaveChangesAsync();
     }
 
     public async Task AddSubscriber(ATDid subscriber, string rkey)
