@@ -12,7 +12,7 @@
 
 <div>
     <span>Subscribers: </span>
-    <h2>@_subscribers.Count()</h2>
+    <h2>@_subscribers.Count(x => x.Active == "Yes") / @_subscribers.Count()</h2>
 </div>
 
 <div class="grid">
