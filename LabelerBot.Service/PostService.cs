@@ -3,7 +3,7 @@ using FishyFlip.Lexicon.App.Bsky.Richtext;
 using FishyFlip.Models;
 using LabelerBot.Data;
 
-namespace LabelerBot;
+namespace LabelerBot.Service;
 
 public interface IPostService
 {

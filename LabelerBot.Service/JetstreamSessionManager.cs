@@ -5,7 +5,7 @@ using FishyFlip;
 using FishyFlip.Events;
 using Timer = System.Timers.Timer;
 
-namespace LabelerBot;
+namespace LabelerBot.Service;
 
 public interface IJetstreamSessionManager
 {
@@ -58,8 +58,7 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
 
             if (e.State == WebSocketState.CloseReceived)
             {
-                logger.LogError("Jetstream force closed the connection - what the hell man?");
-                return;
+                logger.LogError("Jetstream force closed the connection");
             }
 
             if (e.State != WebSocketState.Open && !_cancellationToken.IsCancellationRequested)

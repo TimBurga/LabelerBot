@@ -1,6 +1,6 @@
 ﻿@page "/"
 
-@using LabelerBot.Data.Entities
+@using LabelerBot.Data
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using Microsoft.EntityFrameworkCore
 @implements IAsyncDisposable
@@ -16,14 +16,14 @@
 </div>
 
 <div class="grid">
-    <QuickGrid Items="_subscribers" Virtualize="false" Class="table table-striped table-hover">
-        <PropertyColumn Property="@(sub => sub.Handle)" Title="Handle" Class="handle-display" />
-        <PropertyColumn Property="@(sub => sub.Did)" Title="DID"  />
-        <PropertyColumn Property="@(sub => sub.Timestamp)" Title="Subscribed" Sortable="true" InitialSortDirection="SortDirection.Descending" IsDefaultSortColumn="true" />
-        <PropertyColumn Property="@(sub => sub.Active)" Title="Active" />
-        <PropertyColumn Property="@(sub => sub.Posts)" Title="Posts" />
-        <PropertyColumn Property="@(sub => sub.Score)" Title="Score %" />
-        <PropertyColumn Property="@(sub => sub.Label)" Title="Label" />
+    <QuickGrid Items="_subscribers" Virtualize="false" Class="table table-striped table-hover>
+        <PropertyColumn Property="@(sub => sub.Handle)" Title="Handle" Class="handle-display"/>
+        <PropertyColumn Property="@(sub => sub.Did)" Title="DID"/>
+        <PropertyColumn Property="@(sub => sub.Timestamp)" Title="Subscribed" Sortable="true" InitialSortDirection="SortDirection.Descending" IsDefaultSortColumn="true"/>
+        <PropertyColumn Property="@(sub => sub.Active)" Title="Active"/>
+        <PropertyColumn Property="@(sub => sub.Posts)" Title="Posts"/>
+        <PropertyColumn Property="@(sub => sub.Score)" Title="Score %"/>
+        <PropertyColumn Property="@(sub => sub.Label)" Title="Label"/>
     </QuickGrid>
 </div>
 

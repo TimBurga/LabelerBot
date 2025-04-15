@@ -1,6 +1,7 @@
 using LabelerBot;
 using LabelerBot.Data;
 using LabelerBot.Data.Entities;
+using LabelerBot.Service;
 using Microsoft.EntityFrameworkCore;
 
 var builder = Host.CreateApplicationBuilder(args);

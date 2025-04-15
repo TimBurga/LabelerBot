@@ -1,4 +1,4 @@
-﻿namespace LabelerBot;
+﻿namespace LabelerBot.Service;
 
 public static class Constants
 {

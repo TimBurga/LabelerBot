@@ -1,10 +1,10 @@
 ﻿using FishyFlip.Lexicon.App.Bsky.Actor;
 using FishyFlip.Models;
+using LabelerBot.Data;
 using LabelerBot.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
-namespace LabelerBot.Data;
+namespace LabelerBot.Service;
 
 public interface IDataRepository
 {

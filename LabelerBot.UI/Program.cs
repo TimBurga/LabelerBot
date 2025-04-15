@@ -1,3 +1,4 @@
+using LabelerBot.Data;
 using LabelerBot.Data.Entities;
 using LabelerBot.UI.Components;
 using Microsoft.EntityFrameworkCore;

@@ -1,7 +1,8 @@
 ﻿using FishyFlip.Models;
+using LabelerBot.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace LabelerBot.Data.Entities;
+namespace LabelerBot.Data;
 
 public class DataContext(DbContextOptions<DataContext> options) : DbContext(options)
 {
