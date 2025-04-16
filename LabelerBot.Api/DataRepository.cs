@@ -4,7 +4,7 @@ using LabelerBot.Data;
 using LabelerBot.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace LabelerBot.Service;
+namespace LabelerBot.Api;
 
 public interface IDataRepository
 {

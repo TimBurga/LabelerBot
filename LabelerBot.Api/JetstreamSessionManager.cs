@@ -5,7 +5,7 @@ using FishyFlip;
 using FishyFlip.Events;
 using Timer = System.Timers.Timer;
 
-namespace LabelerBot.Service;
+namespace LabelerBot.Api;
 
 public interface IJetstreamSessionManager
 {

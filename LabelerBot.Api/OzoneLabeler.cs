@@ -3,7 +3,7 @@ using FishyFlip.Lexicon.Tools.Ozone.Moderation;
 using FishyFlip.Models;
 using LabelerBot.Data;
 
-namespace LabelerBot.Service;
+namespace LabelerBot.Api;
 
 
 public interface ILabeler

@@ -2,7 +2,7 @@
 using FishyFlip.Models;
 using Timer = System.Timers.Timer;
 
-namespace LabelerBot.Service;
+namespace LabelerBot.Api;
 
 public interface IAtProtoSessionManager
 {

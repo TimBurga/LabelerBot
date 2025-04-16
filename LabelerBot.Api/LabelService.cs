@@ -1,7 +1,7 @@
 ﻿using FishyFlip.Models;
 using LabelerBot.Data;
 
-namespace LabelerBot.Service;
+namespace LabelerBot.Api;
 
 public interface ILabelService
 {

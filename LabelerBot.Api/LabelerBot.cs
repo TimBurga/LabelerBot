@@ -6,7 +6,7 @@ using FishyFlip.Models;
 using LabelerBot.Data;
 using LabelerBot.Data.Entities;
 
-namespace LabelerBot.Service;
+namespace LabelerBot.Api;
 
 public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository dataRepository, ILabelService labelService, IConfiguration config, ILogger<LabelerBot> logger) : BackgroundService
 {
