@@ -16,7 +16,7 @@
 </div>
 
 <div class="grid">
-    <QuickGrid Items="_subscribers" Virtualize="false" Class="table table-striped table-hover>
+    <QuickGrid Items="_subscribers" Virtualize="false" Class="table table-striped table-hover">
         <PropertyColumn Property="@(sub => sub.Handle)" Title="Handle" Class="handle-display"/>
         <PropertyColumn Property="@(sub => sub.Did)" Title="DID"/>
         <PropertyColumn Property="@(sub => sub.Timestamp)" Title="Subscribed" Sortable="true" InitialSortDirection="SortDirection.Descending" IsDefaultSortColumn="true"/>

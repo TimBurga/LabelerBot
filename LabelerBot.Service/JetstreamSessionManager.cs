@@ -90,9 +90,9 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
         {
             _jetstreamRetryTimer.Close();
             logger.LogCritical($"Failed to reconnect to Jetstream after {_retryCount} attempts");
-            Process.GetCurrentProcess().Kill();
+            return;
         }
-
+        
         logger.LogInformation("Attempting to retry reconnection to Jetstream");
         _retryCount++;
 
@@ -100,6 +100,10 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
         {
             await _atproto!.ConnectAsync(token: _cancellationToken);
             _retryCount = 0;
+        }
+        catch (InvalidOperationException iox)
+        {
+            logger.LogWarning(iox, "Are we good now?");
         }
         catch (Exception ex)
         {
