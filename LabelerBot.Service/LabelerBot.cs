@@ -33,10 +33,10 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
             while (!cancellationToken.IsCancellationRequested)
             {
+                await Task.Delay(3000, cancellationToken);
             }
 
             logger.LogInformation("Stopping LabelerBot");
-
         }
         catch (Exception ex)
         {

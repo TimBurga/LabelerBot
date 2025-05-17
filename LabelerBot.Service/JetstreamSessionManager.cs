@@ -36,6 +36,8 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
         await _atproto.ConnectAsync(token: _cancellationToken);
 
         _jetstreamRetryTimer.Elapsed += JetstreamRetryTimerOnElapsed;
+
+        logger.LogInformation("Jetstream session opened");
     }
 
     public async Task CloseAsync()
@@ -48,6 +50,8 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
         }
 
         _jetstreamRetryTimer.Elapsed -= JetstreamRetryTimerOnElapsed;
+
+        logger.LogInformation("Jetstream session closed");
     }
 
     private async void OnConnectionUpdated(object? sender, SubscriptionConnectionStatusEventArgs e)
@@ -103,7 +107,9 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
         }
         catch (InvalidOperationException iox)
         {
-            logger.LogWarning(iox, "Are we good now?");
+            logger.LogError(iox, "We're hosed.. restarting Jetstream instance");
+            await CloseAsync();
+            await OpenAsync(_recordReceivedHandler!, _cancellationToken);
         }
         catch (Exception ex)
         {

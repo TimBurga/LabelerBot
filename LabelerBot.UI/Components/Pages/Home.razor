@@ -11,8 +11,8 @@
 <PageTitle>LabelerBot Subscribers</PageTitle>
 
 <div>
-    <span>Subscribers: </span>
-    <h2>@_subscribers.Count()</h2>
+    <span>Active Subscribers: </span>
+    <h2>@_subscribers.Count(x => x.Active == "Yes")</h2>
 </div>
 
 <div class="grid">
