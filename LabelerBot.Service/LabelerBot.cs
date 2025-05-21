@@ -218,9 +218,20 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
             await records.SwitchAsync(success =>
             {
+                if (success!.Records.Count == 0)
+                {
+                    bail = true;
+                    return Task.CompletedTask;
+                }
+
                 foreach (var record in success!.Records)
                 {
                     var post = record.Value as Post;
+
+                    if (post.CreatedAt.GetValueOrDefault(DateTime.UtcNow) < earliestTimeSeen)
+                    {
+                        earliestTimeSeen = post.CreatedAt!.Value;
+                    }
 
                     if (post?.Embed is not EmbedImages imgPost)
                     {
@@ -236,11 +247,6 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                     });
 
                     backfillPosts.AddRange(newPosts);
-
-                    if (post.CreatedAt.GetValueOrDefault(DateTime.UtcNow) < earliestTimeSeen)
-                    {
-                        earliestTimeSeen = post.CreatedAt!.Value;
-                    }
                 }
 
                 lastCursor = cursor;
