@@ -11,7 +11,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddDbContextFactory<DataContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Database"));
 });
 
 builder.Services.AddQuickGridEntityFrameworkAdapter();
