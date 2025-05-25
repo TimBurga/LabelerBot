@@ -86,11 +86,6 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
                 .HasForeignKey<Label>(d => d.Did)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Label_Subscriber");
-
-            //entity.HasOne<Label>()
-            //    .WithMany(x => x.Subscribers)
-            //    .HasForeignKey("FK_Label_Subscriber")
-            //    .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }

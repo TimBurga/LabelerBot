@@ -1,6 +1,4 @@
-using LabelerBot;
 using LabelerBot.Data;
-using LabelerBot.Data.Entities;
 using LabelerBot.Service;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +7,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<LabelerBot.Service.LabelerBot>();
 builder.Services.AddDbContextFactory<DataContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
+   options.UseNpgsql(builder.Configuration.GetConnectionString("Database"));
 });
 
 builder.Services.AddLogging(x => x.AddJsonConsole(c => c.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] "));
