@@ -125,7 +125,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                     Cid = image.ImageValue.Ref!.Link!,
                     Did = did,
                     Rkey = rkey,
-                    Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow),
+                    Timestamp = post.CreatedAt?.ToUniversalTime() ?? DateTime.UtcNow,
                     ValidAlt = IsValidAlt(image.Alt)
                 })
                 .ToList();
@@ -242,7 +242,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                     {
                         Cid = image.ImageValue.Ref!.Link!,
                         Did = did,
-                        Timestamp = post.CreatedAt.GetValueOrDefault(DateTime.UtcNow),
+                        Timestamp = post.CreatedAt?.ToUniversalTime() ?? DateTime.UtcNow,
                         ValidAlt = IsValidAlt(image.Alt)
                     });
 
