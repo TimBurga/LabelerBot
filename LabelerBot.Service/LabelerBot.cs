@@ -2,6 +2,7 @@ using FishyFlip;
 using FishyFlip.Events;
 using FishyFlip.Lexicon.App.Bsky.Embed;
 using FishyFlip.Lexicon.App.Bsky.Feed;
+using FishyFlip.Lexicon.Social.Psky.Chat;
 using FishyFlip.Models;
 using LabelerBot.Data;
 using LabelerBot.Data.Entities;
@@ -242,6 +243,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
                     {
                         Cid = image.ImageValue.Ref!.Link!,
                         Did = did,
+                        Rkey = record.Uri.Rkey,
                         Timestamp = post.CreatedAt?.ToUniversalTime() ?? DateTime.UtcNow,
                         ValidAlt = IsValidAlt(image.Alt)
                     });
