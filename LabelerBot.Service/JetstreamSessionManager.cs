@@ -1,8 +1,9 @@
+using FishyFlip;
+using FishyFlip.Events;
 using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Timers;
-using FishyFlip;
-using FishyFlip.Events;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 using Timer = System.Timers.Timer;
 
 namespace LabelerBot.Service;
@@ -14,7 +15,7 @@ public interface IJetstreamSessionManager
     Task CloseAsync();
 }
 
-public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : IJetstreamSessionManager
+public class JetstreamSessionManager(IConfiguration config, ILogger<JetstreamSessionManager> logger) : IJetstreamSessionManager
 {
     private ATJetStream? _atproto;
     private CancellationToken _cancellationToken = CancellationToken.None;
@@ -29,7 +30,7 @@ public class JetstreamSessionManager(ILogger<JetstreamSessionManager> logger) : 
         _cancellationToken = cancellationToken;
         _recordReceivedHandler = recordReceivedHandler;
 
-        _atproto = new ATJetStreamBuilder().Build();
+        _atproto = new ATJetStreamBuilder().WithInstanceUrl(config.GetValue<Uri>("Labeler:JestreamUri")).Build();
         _atproto.OnConnectionUpdated += OnConnectionUpdated;
         _atproto.OnRecordReceived += _recordReceivedHandler;
 
