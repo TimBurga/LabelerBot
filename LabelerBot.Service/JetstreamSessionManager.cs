@@ -30,7 +30,8 @@ public class JetstreamSessionManager(IConfiguration config, ILogger<JetstreamSes
         _cancellationToken = cancellationToken;
         _recordReceivedHandler = recordReceivedHandler;
 
-        _atproto = new ATJetStreamBuilder().WithInstanceUrl(config.GetValue<Uri>("Labeler:JestreamUri")).Build();
+        logger.LogInformation("Using JetStream source {jetstreamUri}", config.GetValue<Uri>("Labeler:JetstreamUri"));
+        _atproto = new ATJetStreamBuilder().WithInstanceUrl(config.GetValue<Uri>("Labeler:JetstreamUri")).Build();
         _atproto.OnConnectionUpdated += OnConnectionUpdated;
         _atproto.OnRecordReceived += _recordReceivedHandler;
 
