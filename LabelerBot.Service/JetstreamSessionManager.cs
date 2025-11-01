@@ -30,8 +30,10 @@ public class JetstreamSessionManager(IConfiguration config, ILogger<JetstreamSes
         _cancellationToken = cancellationToken;
         _recordReceivedHandler = recordReceivedHandler;
 
-        logger.LogInformation("Using JetStream source {jetstreamUri}", config.GetValue<Uri>("Labeler:JetstreamUri"));
-        _atproto = new ATJetStreamBuilder().WithInstanceUrl(config.GetValue<Uri>("Labeler:JetstreamUri")).Build();
+        var jetstreamUri = config.GetValue<Uri>("Labeler:JetstreamUri", new Uri("wss://jetstream1.us-west.bsky.network"));
+        logger.LogInformation("Using JetStream source {jetstreamUri}", jetstreamUri.OriginalString);
+        
+        _atproto = new ATJetStreamBuilder().WithInstanceUrl(jetstreamUri).Build();
         _atproto.OnConnectionUpdated += OnConnectionUpdated;
         _atproto.OnRecordReceived += _recordReceivedHandler;
 
