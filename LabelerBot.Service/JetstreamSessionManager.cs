@@ -15,7 +15,7 @@ public interface IJetstreamSessionManager
     Task CloseAsync();
 }
 
-public class JetstreamSessionManager(IConfiguration config, ILogger<JetstreamSessionManager> logger) : IJetstreamSessionManager
+public class JetstreamSessionManager(IConfiguration config, INotificationClient notificationClient, ILogger<JetstreamSessionManager> logger) : IJetstreamSessionManager
 {
     private ATJetStream? _atproto;
     private CancellationToken _cancellationToken = CancellationToken.None;
@@ -87,6 +87,7 @@ public class JetstreamSessionManager(IConfiguration config, ILogger<JetstreamSes
         catch (Exception ex)
         {
             logger.LogError(ex, "Error in Jetstream connection updated handler");
+            await notificationClient.SendAsync("Possible LabelerBot crash detected. Check the logs for details.");
         }
     }
 
@@ -98,6 +99,7 @@ public class JetstreamSessionManager(IConfiguration config, ILogger<JetstreamSes
         {
             _jetstreamRetryTimer.Close();
             logger.LogCritical($"Failed to reconnect to Jetstream after {_retryCount} attempts");
+            await notificationClient.SendAsync("Possible LabelerBot crash detected. Check the logs for details.");
             return;
         }
         

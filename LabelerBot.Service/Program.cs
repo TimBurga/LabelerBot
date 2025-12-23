@@ -12,6 +12,8 @@ builder.Services.AddDbContextFactory<DataContext>(options =>
 
 builder.Services.AddLogging(x => x.AddJsonConsole(c => c.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] "));
 
+builder.Services.AddHttpClient<INotificationClient, DiscordWebhookClient>();
+
 builder.Services.AddTransient<IDataRepository, DataRepository>();
 builder.Services.AddTransient<ILabelService, LabelService>();
 builder.Services.AddTransient<ILabeler, OzoneLabeler>();
