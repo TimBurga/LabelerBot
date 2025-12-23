@@ -9,7 +9,7 @@ using LabelerBot.Data.Entities;
 
 namespace LabelerBot.Service;
 
-public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository dataRepository, ILabelService labelService, IConfiguration config, ILogger<LabelerBot> logger, DiscordWebhookClient webhook) : BackgroundService
+public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository dataRepository, ILabelService labelService, IConfiguration config, ILogger<LabelerBot> logger, INotificationClient webhook) : BackgroundService
 {
     private readonly ATDid _labelerDid = ATDid.Create(config.GetValue<string>("Labeler:Did")!)!;
     private Dictionary<ATDid, string?> _subscribers = [];
@@ -17,14 +17,10 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-
-        await webhook.SendAsync("test");
-
+        await webhook.SendAsync("LabelerBot started");
 
         _cancellationToken = cancellationToken;
         logger.LogInformation("Starting LabelerBot");
-
-
 
         try
         {
