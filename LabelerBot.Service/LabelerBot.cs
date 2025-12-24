@@ -48,6 +48,7 @@ public class LabelerBot(IJetstreamSessionManager jetstream, IDataRepository data
         finally
         {
             await jetstream.CloseAsync();
+            await webhook.SendAsync("LabelerBot is kill");
             logger.LogInformation("LabelerBot is kill");
         }
     }
